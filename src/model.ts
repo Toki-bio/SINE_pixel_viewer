@@ -173,6 +173,7 @@ export interface ViewerSettings {
   consensusWindow: [number, number]
   pixelSize: number
   pixelWidth: number
+  labelWidth: number
   colorScheme: ColorSchemeName
   showConsensus: boolean
   showDivergence: boolean
@@ -212,6 +213,7 @@ export const defaultViewerSettings = (consensusLength: number): ViewerSettings =
   consensusWindow: [1, consensusLength],
   pixelSize: 4,
   pixelWidth: 4,
+  labelWidth: 168,
   colorScheme: 'accessible',
   showConsensus: true,
   showDivergence: true,

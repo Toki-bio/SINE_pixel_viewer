@@ -100,7 +100,7 @@ export class SINEViewer {
     const result = buildRenderResult(this.data, settings)
     this.lastResult = result
     const palette = colorSchemes[settings.colorScheme] ?? colorSchemes.accessible
-    const leftPad = 168
+    const leftPad = settings.labelWidth
     // Consensus track moved to sticky scale header — reduce top pad
     const topPad = settings.showConsensus ? 26 : 8
     const rightPad = settings.showDivergence ? 96 : 24
@@ -129,7 +129,7 @@ export class SINEViewer {
   setHoverFromPoint(x: number, y: number, settings: ViewerSettings): string {
     if (!this.lastResult) return ''
     const topPad = settings.showConsensus ? 26 : 8
-    const leftPad = 168
+    const leftPad = settings.labelWidth
     const rowHeight = Math.max(3, settings.pixelSize)
     const columnWidth = Math.max(1, settings.pixelWidth)
     const row = Math.floor((y - topPad) / rowHeight)

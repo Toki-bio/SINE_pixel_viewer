@@ -45,6 +45,9 @@ app.innerHTML = `
         <label>Px W <span class="range-value" id="pixel-width-val">4</span>
           <input class="render-control" id="pixel-width" type="range" min="1" max="20" value="4">
         </label>
+        <label>Label <span class="range-value" id="label-width-val">168</span>
+          <input class="render-control" id="label-width" type="range" min="60" max="400" value="168">
+        </label>
         <label>Color
           <select class="render-control" id="color-scheme">
             <option value="accessible" selected>accessible</option>
@@ -127,7 +130,6 @@ const hoverOutput = document.querySelector<HTMLOutputElement>('#hover-output')!
 const summaryStrip = document.querySelector<HTMLDivElement>('#summary-strip')!
 const scaleHeader = document.querySelector<HTMLDivElement>('#scale-header')!
 const tooltip = document.querySelector<HTMLDivElement>('#canvas-tooltip')!
-const canvasWrap = document.querySelector<HTMLDivElement>('#canvas-wrap')!
 
 let alignmentData: AlignmentData | null = null
 let viewer: SINEViewer | null = null
@@ -236,7 +238,7 @@ function renderScaleHeader(s: ViewerSettings, result: { columns: { consensusPos:
   const columnWidth = Math.max(1, s.pixelWidth)
   const minGap = 50
   const interval = Math.max(10, Math.ceil(minGap / columnWidth / 10) * 10)
-  const leftPad = 168
+  const leftPad = s.labelWidth
   let html = ''
   for (let i = 0; i < result.columns.length; i++) {
     const col = result.columns[i]
@@ -249,7 +251,7 @@ function renderScaleHeader(s: ViewerSettings, result: { columns: { consensusPos:
     }
   }
   scaleHeader.innerHTML = html
-  // Push scale header width to match canvas
+  scaleHeader.style.paddingLeft = `${leftPad}px`
   scaleHeader.style.minWidth = `${leftPad + result.columns.length * columnWidth + 96}px`
 }
 
@@ -257,6 +259,7 @@ function readSettings(consensusLength: number): ViewerSettings {
   const next = defaultViewerSettings(consensusLength)
   next.pixelSize = numericValue('#pixel-size', 4)
   next.pixelWidth = numericValue('#pixel-width', 4)
+  next.labelWidth = numericValue('#label-width', 168)
   next.consensusWindow = [
     clamp(numericValue('#window-start', 1), 1, consensusLength),
     clamp(numericValue('#window-end', consensusLength), 1, consensusLength),
@@ -305,6 +308,7 @@ function isAlignmentData(value: unknown): value is Record<string, unknown> {
 function resetAllControls() {
   document.querySelector<HTMLInputElement>('#pixel-size')!.value = '4'; syncRangeDisplay('pixel-size')
   document.querySelector<HTMLInputElement>('#pixel-width')!.value = '4'; syncRangeDisplay('pixel-width')
+  document.querySelector<HTMLInputElement>('#label-width')!.value = '168'; syncRangeDisplay('label-width')
   document.querySelector<HTMLInputElement>('#window-start')!.value = '1'
   document.querySelector<HTMLInputElement>('#div-min')!.value = '0'
   document.querySelector<HTMLInputElement>('#div-max')!.value = '100'
@@ -390,11 +394,6 @@ canvas.addEventListener('mousemove', (event) => {
 })
 canvas.addEventListener('mouseleave', () => {
   tooltip.style.display = 'none'
-})
-
-// Sync canvas-wrap scroll with scale header
-canvasWrap.addEventListener('scroll', () => {
-  scaleHeader.scrollLeft = canvasWrap.scrollLeft
 })
 
 calculate()
