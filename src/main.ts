@@ -13,7 +13,7 @@ app.innerHTML = `
       <h1>SINE Pixel Viewer</h1>
     </div>
     <div class="header-actions">
-      <button id="load-sample" type="button">Load Sample</button>
+      <button id="reset-button" type="button">Reset</button>
       <button id="load-calculation" type="button">Load Calculation JSON</button>
       <input id="calculation-input" type="file" accept="application/json,.json" hidden>
       <button id="run-alignment" type="button">Run Alignment</button>
@@ -139,6 +139,9 @@ const summaryStrip = document.querySelector<HTMLDivElement>('#summary-strip')!
 let alignmentData: AlignmentData | null = null
 let viewer: SINEViewer | null = null
 let settings = defaultViewerSettings(64)
+// Track the last committed data so Reset can revert to it
+let originalConsensus = sampleConsensus
+let originalCopies = sampleCopies
 
 consensusInput.value = sampleConsensus
 copyInput.value = sampleCopies
@@ -152,6 +155,9 @@ function calculate() {
       minSequenceLengthRatio: 0.5,
     })
     viewer = new SINEViewer(alignmentData, canvas)
+    // Remember this data so Reset can restore it later
+    originalConsensus = consensusInput.value
+    originalCopies = copyInput.value
     renderCurrent()
   } catch (error) {
     alignmentData = null
@@ -266,9 +272,9 @@ function resetAllControls() {
   document.querySelector<HTMLInputElement>('#show-divergence')!.checked = true
 }
 
-document.querySelector<HTMLButtonElement>('#load-sample')!.addEventListener('click', () => {
-  consensusInput.value = sampleConsensus
-  copyInput.value = sampleCopies
+document.querySelector<HTMLButtonElement>('#reset-button')!.addEventListener('click', () => {
+  consensusInput.value = originalConsensus
+  copyInput.value = originalCopies
   modeInput.value = 'sub_del'
   resetAllControls()
   calculate()
