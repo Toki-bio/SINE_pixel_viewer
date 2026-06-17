@@ -1,6 +1,6 @@
 import './style.css'
 import { calculateAlignmentData } from './calculator'
-import { defaultViewerSettings, type AlignmentData, type AlignmentMode, type ColorSchemeName, type SortMode, type ViewerSettings } from './model'
+import { defaultViewerSettings, expandCompactAlignment, isCompactSequence, type AlignmentData, type AlignmentMode, type AnySequenceOnDisk, type ColorSchemeName, type SortMode, type ViewerSettings } from './model'
 import { sampleConsensus, sampleCopies } from './sampleData'
 import { SINEViewer } from './viewer'
 
@@ -168,11 +168,18 @@ function calculate() {
 
 async function loadCalculationFile(file: File) {
   try {
-    const parsed = JSON.parse(await file.text()) as unknown
-    if (!isAlignmentData(parsed)) {
+    const raw = JSON.parse(await file.text()) as Record<string, unknown>
+    if (!isAlignmentData(raw)) {
       throw new Error('Calculation JSON does not match the SINE Pixel Viewer alignment schema')
     }
-    alignmentData = parsed
+    // Expand compact format (states+bases) to full pixels if needed
+    if (raw.format === 'compact' || raw.sequences?.some((s: AnySequenceOnDisk) => isCompactSequence(s))) {
+      const consensus = raw.consensus as string
+      raw.sequences = (raw.sequences as AnySequenceOnDisk[]).map((seq) =>
+        isCompactSequence(seq) ? expandCompactAlignment(seq, consensus) : seq,
+      )
+    }
+    alignmentData = raw as unknown as AlignmentData
     viewer = new SINEViewer(alignmentData, canvas)
     modeInput.value = alignmentData.mode
     document.querySelector<HTMLInputElement>('#window-start')!.value = '1'
@@ -242,11 +249,11 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value))
 }
 
-function isAlignmentData(value: unknown): value is AlignmentData {
+function isAlignmentData(value: unknown): value is Record<string, unknown> {
   if (!value || typeof value !== 'object') {
     return false
   }
-  const candidate = value as Partial<AlignmentData>
+  const candidate = value as Record<string, unknown>
   return typeof candidate.consensus === 'string'
     && typeof candidate.consensusLength === 'number'
     && typeof candidate.numSequences === 'number'

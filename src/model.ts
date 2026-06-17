@@ -37,6 +37,81 @@ export interface SequenceAlignment {
   length: number
 }
 
+/** Compact on-disk format: states string + sparse bases/insertions instead of pixel objects */
+export interface CompactSequenceAlignment {
+  id: string
+  states: string
+  bases?: Record<string, string>
+  insertions?: Record<string, string>
+  divergence: number
+  divergenceSubstitution: number
+  divergenceIndel: number
+  alignedCoverage: number
+  numIndels: number
+  length: number
+}
+
+const STATE_FROM_CHAR: Record<string, PixelState> = {
+  M: 'match',
+  X: 'mismatch',
+  D: 'del',
+  '.': 'missing',
+}
+
+/** Expand a compact sequence alignment back to full pixel objects */
+export function expandCompactAlignment(
+  compact: CompactSequenceAlignment,
+  consensus: string,
+): SequenceAlignment {
+  const pixels: PixelCell[] = []
+  const consensusLen = consensus.length
+
+  for (let i = 0; i < consensusLen; i++) {
+    const pos = i + 1
+    const stateChar = compact.states[i] ?? '.'
+    const state = STATE_FROM_CHAR[stateChar] ?? 'missing'
+    const base = compact.bases?.[String(pos)] ?? consensus[i]
+    pixels.push({
+      consensusPos: pos,
+      insertOffset: 0,
+      state,
+      base,
+      consensusBase: consensus[i],
+    })
+
+    // Handle insertions after this position (full mode)
+    const insBases = compact.insertions?.[String(pos)]
+    if (insBases) {
+      for (let offset = 0; offset < insBases.length; offset++) {
+        pixels.push({
+          consensusPos: pos,
+          insertOffset: offset + 1,
+          state: 'ins',
+          base: insBases[offset],
+          consensusBase: '-',
+        })
+      }
+    }
+  }
+
+  return {
+    id: compact.id,
+    pixels,
+    divergence: compact.divergence,
+    divergenceSubstitution: compact.divergenceSubstitution,
+    divergenceIndel: compact.divergenceIndel,
+    alignedCoverage: compact.alignedCoverage,
+    numIndels: compact.numIndels,
+    length: compact.length,
+  }
+}
+
+export type AnySequenceOnDisk = SequenceAlignment | CompactSequenceAlignment
+
+export function isCompactSequence(seq: AnySequenceOnDisk): seq is CompactSequenceAlignment {
+  return 'states' in seq && typeof (seq as CompactSequenceAlignment).states === 'string'
+}
+
 export interface BasicStats {
   sequenceCount: number
   retainedCount: number

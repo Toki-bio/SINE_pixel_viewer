@@ -120,6 +120,9 @@ def direct_comparison(consensus: str, query: str) -> tuple[list[str], list[str]]
     return aligned_consensus, aligned_query
 
 
+STATE_MAP = {"match": "M", "mismatch": "X", "del": "D"}
+
+
 def project_alignment(
     record: dict[str, str],
     consensus: str,
@@ -129,7 +132,11 @@ def project_alignment(
     max_ins_length: int,
     max_del_length: int,
 ) -> dict[str, object]:
-    pixels: list[dict[str, object]] = []
+    """Project alignment into compact states+bases format (NOT verbose pixel objects)."""
+    consensus_len = len(consensus)
+    states = ["M"] * consensus_len  # default: all matches
+    bases: dict[str, str] = {}
+    insertions_dict: dict[str, list[str]] = {}
     consensus_pos = 0
     current_insertion_anchor = 0
     current_insertion_offset = 0
@@ -145,50 +152,42 @@ def project_alignment(
             current_insertion_offset += 1
             deletion_run_length = 0
             if mode == "full" and current_insertion_offset <= max_ins_length:
-                pixels.append({
-                    "consensusPos": current_insertion_anchor,
-                    "insertOffset": current_insertion_offset,
-                    "state": "ins",
-                    "base": query_base,
-                    "consensusBase": GAP,
-                })
+                key = str(current_insertion_anchor)
+                if key not in insertions_dict:
+                    insertions_dict[key] = []
+                insertions_dict[key].append(query_base)
             continue
 
         consensus_pos += 1
         current_insertion_anchor = consensus_pos
         current_insertion_offset = 0
+        idx = consensus_pos - 1
 
         if query_base == GAP:
             deletions += 1
             deletion_run_length += 1
             if deletion_run_length <= max_del_length:
-                pixels.append({
-                    "consensusPos": consensus_pos,
-                    "insertOffset": 0,
-                    "state": "del",
-                    "base": GAP,
-                    "consensusBase": consensus_base,
-                })
+                states[idx] = "D"
+                bases[str(consensus_pos)] = GAP
+            else:
+                states[idx] = "."
             continue
 
         deletion_run_length = 0
         observed_consensus_columns += 1
-        state = "match" if query_base == consensus_base else "mismatch"
-        if state == "mismatch":
+        if query_base == consensus_base:
+            # Match – already "M" by default
+            pass
+        else:
             mismatches += 1
-        pixels.append({
-            "consensusPos": consensus_pos,
-            "insertOffset": 0,
-            "state": state,
-            "base": query_base,
-            "consensusBase": consensus_base,
-        })
+            states[idx] = "X"
+            bases[str(consensus_pos)] = query_base
 
-    denominator = len(consensus) or 1
+    denominator = consensus_len or 1
     indels = insertions + deletions
-    return {
+    result: dict[str, object] = {
         "id": record["id"],
-        "pixels": pixels,
+        "states": "".join(states),
         "divergence": ((mismatches + indels) / denominator) * 100,
         "divergenceSubstitution": (mismatches / denominator) * 100,
         "divergenceIndel": (indels / denominator) * 100,
@@ -196,6 +195,11 @@ def project_alignment(
         "numIndels": indels,
         "length": len(record["sequence"]),
     }
+    if bases:
+        result["bases"] = bases
+    if insertions_dict:
+        result["insertions"] = {k: "".join(v) for k, v in insertions_dict.items()}
+    return result
 
 
 def calculate(args: argparse.Namespace) -> dict[str, object]:
@@ -230,6 +234,7 @@ def calculate(args: argparse.Namespace) -> dict[str, object]:
         "consensusLength": len(consensus),
         "numSequences": len(alignments),
         "mode": args.mode,
+        "format": "compact",
         "sequences": alignments,
         "stats": {
             "sequenceCount": len(sequence_records),
