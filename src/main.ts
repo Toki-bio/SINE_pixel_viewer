@@ -248,10 +248,29 @@ function isAlignmentData(value: unknown): value is AlignmentData {
     && Array.isArray(candidate.sequences)
 }
 
+function resetAllControls() {
+  document.querySelector<HTMLInputElement>('#pixel-size')!.value = '4'
+  document.querySelector<HTMLInputElement>('#window-start')!.value = '1'
+  // window-end will be set by calculate() → renderCurrent() based on consensus length
+  document.querySelector<HTMLInputElement>('#div-min')!.value = '0'
+  document.querySelector<HTMLInputElement>('#div-max')!.value = '100'
+  document.querySelector<HTMLInputElement>('#max-sequences')!.value = '500'
+  document.querySelector<HTMLInputElement>('#top-n')!.value = '0'
+  document.querySelector<HTMLInputElement>('#bottom-n')!.value = '0'
+  document.querySelector<HTMLInputElement>('#random-n')!.value = '0'
+  document.querySelector<HTMLSelectElement>('#color-scheme')!.value = 'accessible'
+  document.querySelector<HTMLSelectElement>('#sort-mode')!.value = 'divergence-asc'
+  document.querySelector<HTMLInputElement>('#search-text')!.value = ''
+  document.querySelector<HTMLInputElement>('#selected-ids')!.value = ''
+  document.querySelector<HTMLInputElement>('#show-consensus')!.checked = true
+  document.querySelector<HTMLInputElement>('#show-divergence')!.checked = true
+}
+
 document.querySelector<HTMLButtonElement>('#load-sample')!.addEventListener('click', () => {
   consensusInput.value = sampleConsensus
   copyInput.value = sampleCopies
   modeInput.value = 'sub_del'
+  resetAllControls()
   calculate()
 })
 document.querySelector<HTMLButtonElement>('#load-calculation')!.addEventListener('click', () => calculationInput.click())
