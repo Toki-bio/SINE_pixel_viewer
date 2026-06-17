@@ -29,6 +29,8 @@ export interface PixelCell {
 export interface SequenceAlignment {
   id: string
   pixels: PixelCell[]
+  /** Reconstructed raw (ungapped) query sequence — enables mode switching on imported data */
+  rawSequence?: string
   divergence: number
   divergenceSubstitution: number
   divergenceIndel: number
@@ -94,9 +96,22 @@ export function expandCompactAlignment(
     }
   }
 
+  // Reconstruct raw (ungapped) query sequence for mode switching
+  let raw = ''
+  for (let i = 0; i < consensusLen; i++) {
+    const pos = i + 1
+    const stateChar = compact.states[i] ?? '.'
+    if (stateChar === 'D' || stateChar === '.') continue
+    raw += compact.bases?.[String(pos)] ?? consensus[i]
+    // Append insertion bases
+    const ins = compact.insertions?.[String(pos)]
+    if (ins) raw += ins
+  }
+
   return {
     id: compact.id,
     pixels,
+    rawSequence: raw,
     divergence: compact.divergence,
     divergenceSubstitution: compact.divergenceSubstitution,
     divergenceIndel: compact.divergenceIndel,
@@ -110,6 +125,21 @@ export type AnySequenceOnDisk = SequenceAlignment | CompactSequenceAlignment
 
 export function isCompactSequence(seq: AnySequenceOnDisk): seq is CompactSequenceAlignment {
   return 'states' in seq && typeof (seq as CompactSequenceAlignment).states === 'string'
+}
+
+/** Reconstruct raw (ungapped) sequence from old pixel-format data */
+export function reconstructRawFromPixels(pixels: PixelCell[]): string {
+  const sorted = [...pixels].sort((a, b) =>
+    a.consensusPos !== b.consensusPos ? a.consensusPos - b.consensusPos : a.insertOffset - b.insertOffset
+  )
+  let raw = ''
+  let lastPos = 0
+  for (const p of sorted) {
+    if (p.state === 'del' || p.state === 'missing') continue
+    raw += p.base
+    lastPos = Math.max(lastPos, p.consensusPos)
+  }
+  return raw
 }
 
 export interface BasicStats {

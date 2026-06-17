@@ -1,6 +1,6 @@
 import './style.css'
 import { calculateAlignmentData } from './calculator'
-import { defaultViewerSettings, expandCompactAlignment, isCompactSequence, type AlignmentData, type AlignmentMode, type AnySequenceOnDisk, type ColorSchemeName, type SortMode, type ViewerSettings } from './model'
+import { defaultViewerSettings, expandCompactAlignment, isCompactSequence, reconstructRawFromPixels, type AlignmentData, type AlignmentMode, type AnySequenceOnDisk, type ColorSchemeName, type SortMode, type ViewerSettings } from './model'
 import { sampleConsensus, sampleCopies } from './sampleData'
 import { SINEViewer, colorSchemes } from './viewer'
 
@@ -187,6 +187,12 @@ async function loadCalculationFile(file: File) {
     }
     alignmentData = raw as unknown as AlignmentData
     dataFromJson = true
+    // Ensure every sequence has rawSequence for mode switching
+    for (const seq of alignmentData.sequences) {
+      if (!seq.rawSequence || seq.rawSequence.length === 0) {
+        seq.rawSequence = reconstructRawFromPixels(seq.pixels)
+      }
+    }
     viewer = new SINEViewer(alignmentData, canvas)
     modeInput.value = alignmentData.mode
     document.querySelector<HTMLInputElement>('#window-start')!.value = '1'
@@ -329,8 +335,27 @@ calculationInput.addEventListener('change', () => {
 document.querySelector<HTMLButtonElement>('#run-alignment')!.addEventListener('click', calculate)
 document.querySelector<HTMLButtonElement>('#export-png')!.addEventListener('click', () => viewer?.exportPng())
 modeInput.addEventListener('change', () => {
-  if (dataFromJson) return // mode baked into pre-computed JSON, can't change
-  calculate()
+  if (dataFromJson && alignmentData) {
+    // Re-derive alignment from stored raw sequences with new mode
+    try {
+      const consensusFasta = `>${alignmentData.consensusId}\n${alignmentData.consensus}`
+      const copiesFasta = alignmentData.sequences
+        .map((seq) => `>${seq.id}\n${seq.rawSequence ?? ''}`)
+        .join('\n')
+      alignmentData = calculateAlignmentData(consensusFasta, copiesFasta, {
+        mode: modeInput.value as AlignmentMode,
+        maxInsLength: 50,
+        maxDelLength: 100,
+        minSequenceLengthRatio: 0.5,
+      })
+      viewer = new SINEViewer(alignmentData, canvas)
+      renderCurrent()
+    } catch (error) {
+      summaryStrip.textContent = error instanceof Error ? error.message : String(error)
+    }
+    return
+  }
+  if (!dataFromJson) calculate()
 })
 document.querySelectorAll<HTMLElement>('.render-control').forEach((control) => {
   control.addEventListener('input', renderCurrent)
