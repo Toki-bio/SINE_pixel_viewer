@@ -121,7 +121,7 @@ app.innerHTML = `
       <div class="canvas-wrap">
         <canvas id="alignment-canvas"></canvas>
       </div>
-      <output id="hover-output" class="hover-output">Hover a pixel to inspect its consensus coordinate.</output>
+      <output id="hover-output" class="hover-output">Pixel inspector</output>
     </section>
   </main>
 `
