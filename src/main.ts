@@ -14,6 +14,8 @@ app.innerHTML = `
     </div>
     <div class="header-actions">
       <button id="load-sample" type="button">Load Sample</button>
+      <button id="load-calculation" type="button">Load Calculation JSON</button>
+      <input id="calculation-input" type="file" accept="application/json,.json" hidden>
       <button id="run-alignment" type="button">Run Alignment</button>
       <button id="export-png" type="button">Export PNG</button>
     </div>
@@ -129,6 +131,7 @@ app.innerHTML = `
 const consensusInput = document.querySelector<HTMLTextAreaElement>('#consensus-input')!
 const copyInput = document.querySelector<HTMLTextAreaElement>('#copy-input')!
 const modeInput = document.querySelector<HTMLSelectElement>('#mode-input')!
+const calculationInput = document.querySelector<HTMLInputElement>('#calculation-input')!
 const canvas = document.querySelector<HTMLCanvasElement>('#alignment-canvas')!
 const hoverOutput = document.querySelector<HTMLOutputElement>('#hover-output')!
 const summaryStrip = document.querySelector<HTMLDivElement>('#summary-strip')!
@@ -149,6 +152,25 @@ function calculate() {
       minSequenceLengthRatio: 0.5,
     })
     viewer = new SINEViewer(alignmentData, canvas)
+    renderCurrent()
+  } catch (error) {
+    alignmentData = null
+    viewer = null
+    summaryStrip.textContent = error instanceof Error ? error.message : String(error)
+  }
+}
+
+async function loadCalculationFile(file: File) {
+  try {
+    const parsed = JSON.parse(await file.text()) as unknown
+    if (!isAlignmentData(parsed)) {
+      throw new Error('Calculation JSON does not match the SINE Pixel Viewer alignment schema')
+    }
+    alignmentData = parsed
+    viewer = new SINEViewer(alignmentData, canvas)
+    modeInput.value = alignmentData.mode
+    document.querySelector<HTMLInputElement>('#window-start')!.value = '1'
+    document.querySelector<HTMLInputElement>('#window-end')!.value = String(alignmentData.consensusLength)
     renderCurrent()
   } catch (error) {
     alignmentData = null
@@ -214,11 +236,31 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value))
 }
 
+function isAlignmentData(value: unknown): value is AlignmentData {
+  if (!value || typeof value !== 'object') {
+    return false
+  }
+  const candidate = value as Partial<AlignmentData>
+  return typeof candidate.consensus === 'string'
+    && typeof candidate.consensusLength === 'number'
+    && typeof candidate.numSequences === 'number'
+    && (candidate.mode === 'full' || candidate.mode === 'sub_del' || candidate.mode === 'sub_only')
+    && Array.isArray(candidate.sequences)
+}
+
 document.querySelector<HTMLButtonElement>('#load-sample')!.addEventListener('click', () => {
   consensusInput.value = sampleConsensus
   copyInput.value = sampleCopies
   modeInput.value = 'sub_del'
   calculate()
+})
+document.querySelector<HTMLButtonElement>('#load-calculation')!.addEventListener('click', () => calculationInput.click())
+calculationInput.addEventListener('change', () => {
+  const file = calculationInput.files?.[0]
+  if (file) {
+    void loadCalculationFile(file)
+  }
+  calculationInput.value = ''
 })
 document.querySelector<HTMLButtonElement>('#run-alignment')!.addEventListener('click', calculate)
 document.querySelector<HTMLButtonElement>('#export-png')!.addEventListener('click', () => viewer?.exportPng())
