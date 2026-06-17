@@ -107,6 +107,27 @@ h1 {
   margin: 0 auto;
 }
 
+.workspace.panel-collapsed {
+  grid-template-columns: 0 minmax(0, 1fr);
+}
+
+.workspace.panel-collapsed .control-panel {
+  display: none;
+}
+
+.toggle-panel-btn {
+  border: 1px solid var(--line);
+  background: var(--field);
+  color: var(--ink);
+  padding: 6px 10px;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.toggle-panel-btn:hover {
+  background: var(--panel);
+}
+
 .control-panel,
 .viewer-shell {
   border: 1px solid var(--line);

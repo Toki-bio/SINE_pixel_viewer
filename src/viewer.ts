@@ -160,21 +160,25 @@ export class SINEViewer {
   }
 
   private drawConsensus(settings: ViewerSettings, result: RenderResult, leftPad: number, columnWidth: number) {
-    if (!settings.showConsensus) {
-      return
-    }
+    if (!settings.showConsensus) return
+    // At small pixel sizes show tick marks with position numbers instead of individual bases
     this.context.fillStyle = '#24231f'
-    this.context.font = '12px Georgia, serif'
+    this.context.font = '11px "IBM Plex Mono", Consolas, monospace'
     this.context.textBaseline = 'top'
+    const minGapPx = 32
+    const interval = Math.max(10, Math.ceil(minGapPx / columnWidth / 10) * 10)
     result.columns.forEach((column, index) => {
-      if (column.insertOffset !== 0) {
-        return
-      }
-      const base = this.data.consensus[column.consensusPos - 1] ?? ''
-      if (columnWidth >= 7) {
+      if (column.insertOffset !== 0) return
+      const pos = column.consensusPos
+      if (columnWidth >= 8) {
+        const base = this.data.consensus[pos - 1] ?? ''
         this.context.fillText(base, leftPad + index * columnWidth, 12)
-      } else if (column.consensusPos % 10 === 0) {
-        this.context.fillRect(leftPad + index * columnWidth, 16, Math.max(1, columnWidth), 8)
+      } else if (pos === 1 || pos % interval === 0) {
+        const x = leftPad + index * columnWidth
+        this.context.fillStyle = '#5d574c'
+        this.context.fillRect(x, 6, Math.max(1, columnWidth), 10)
+        this.context.fillStyle = '#24231f'
+        this.context.fillText(String(pos), x + 2, 18)
       }
     })
   }
@@ -183,15 +187,23 @@ export class SINEViewer {
     this.context.fillStyle = '#3d3a34'
     this.context.font = '11px "IBM Plex Mono", Consolas, monospace'
     this.context.textBaseline = 'middle'
+    const maxLabelWidth = leftPad - 24
     result.visibleSequences.forEach((sequence, row) => {
       if (rowHeight >= 7 || row % Math.ceil(9 / rowHeight) === 0) {
-        this.context.fillText(sequence.id, 14, topPad + row * rowHeight + rowHeight / 2)
+        let label = sequence.id
+        if (this.context.measureText(label).width > maxLabelWidth) {
+          while (label.length > 3 && this.context.measureText(label + '\u2026').width > maxLabelWidth) {
+            label = label.slice(0, -1)
+          }
+          label += '\u2026'
+        }
+        this.context.fillText(label, 14, topPad + row * rowHeight + rowHeight / 2)
       }
     })
     this.context.strokeStyle = '#d6d0c2'
     this.context.beginPath()
-    this.context.moveTo(leftPad - 10, topPad)
-    this.context.lineTo(leftPad - 10, topPad + result.visibleSequences.length * rowHeight)
+    this.context.moveTo(leftPad - 6, topPad)
+    this.context.lineTo(leftPad - 6, topPad + result.visibleSequences.length * rowHeight)
     this.context.stroke()
   }
 
@@ -213,21 +225,28 @@ export class SINEViewer {
 
   private drawDivergenceBars(result: RenderResult, x: number, topPad: number, rowHeight: number) {
     this.context.fillStyle = '#d8d1c1'
+    const barHeight = Math.max(2, rowHeight - 1)
+    const barYOffset = (rowHeight - barHeight) / 2
     result.visibleSequences.forEach((sequence, row) => {
       const width = Math.min(72, sequence.divergence * 2)
-      this.context.fillRect(x, topPad + row * rowHeight, width, Math.max(1, rowHeight - 1))
+      this.context.fillRect(x, topPad + row * rowHeight + barYOffset, width, barHeight)
     })
     this.context.fillStyle = '#3d3a34'
     this.context.font = '10px "IBM Plex Mono", Consolas, monospace'
-    this.context.fillText('%div', x, Math.max(10, topPad - 16))
+    this.context.textBaseline = 'bottom'
+    this.context.fillText('%div', x, Math.max(14, topPad - 4))
   }
 
   private drawAxes(result: RenderResult, leftPad: number, topPad: number, rowHeight: number, columnWidth: number) {
     const y = topPad + result.visibleSequences.length * rowHeight + 8
     this.context.fillStyle = '#5d574c'
     this.context.font = '10px "IBM Plex Mono", Consolas, monospace'
+    this.context.textBaseline = 'top'
+    // Adaptive spacing: show label at least every ~50px
+    const minGapPx = 50
+    const interval = Math.max(10, Math.ceil(minGapPx / columnWidth / 10) * 10)
     result.columns.forEach((column, index) => {
-      if (column.insertOffset === 0 && (column.consensusPos === 1 || column.consensusPos % 10 === 0)) {
+      if (column.insertOffset === 0 && (column.consensusPos === 1 || column.consensusPos % interval === 0)) {
         this.context.fillText(String(column.consensusPos), leftPad + index * columnWidth, y)
       }
     })

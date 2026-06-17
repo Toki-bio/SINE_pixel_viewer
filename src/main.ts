@@ -13,6 +13,7 @@ app.innerHTML = `
       <h1>SINE Pixel Viewer</h1>
     </div>
     <div class="header-actions">
+      <button id="toggle-panel" class="toggle-panel-btn" type="button" title="Toggle control panel">☰ Panel</button>
       <button id="reset-button" type="button">Reset</button>
       <button id="load-calculation" type="button">Load Calculation JSON</button>
       <input id="calculation-input" type="file" accept="application/json,.json" hidden>
@@ -280,6 +281,9 @@ function resetAllControls() {
   document.querySelector<HTMLInputElement>('#show-divergence')!.checked = true
 }
 
+document.querySelector<HTMLButtonElement>('#toggle-panel')!.addEventListener('click', () => {
+  document.querySelector<HTMLDivElement>('.workspace')!.classList.toggle('panel-collapsed')
+})
 document.querySelector<HTMLButtonElement>('#reset-button')!.addEventListener('click', () => {
   consensusInput.value = originalConsensus
   copyInput.value = originalCopies
