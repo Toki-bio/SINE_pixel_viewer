@@ -184,6 +184,10 @@ def project_alignment(
             bases[str(consensus_pos)] = query_base
 
     denominator = consensus_len or 1
+    if mode == "sub_only":
+        # sub_only uses direct comparison: alignment is max(consensus, query) positions.
+        # Denominator must be the full alignment length to keep divergence ≤ 100 %.
+        denominator = len(aligned_query) or 1
     indels = insertions + deletions
     result: dict[str, object] = {
         "id": record["id"],

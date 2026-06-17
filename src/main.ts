@@ -190,9 +190,6 @@ async function loadCalculationFile(file: File) {
       raw.sequences = seqs!.map((seq) =>
         isCompactSequence(seq) ? expandCompactAlignment(seq, consensus) : seq,
       )
-      // Debug: check first expanded sequence's rawSequence
-      const firstExpanded = (raw.sequences as Array<Record<string, unknown>>)[0]
-      console.log('First expanded rawSequence length:', (firstExpanded?.rawSequence as string)?.length ?? 'MISSING')
     }
     alignmentData = raw as unknown as AlignmentData
     dataFromJson = true
@@ -201,7 +198,6 @@ async function loadCalculationFile(file: File) {
       if (seq.rawSequence && seq.rawSequence.length > 0) return seq.rawSequence
       return reconstructRawFromPixels(seq.pixels)
     })
-    console.log('Loaded', originalRawSequences.length, 'raw sequences, first length:', originalRawSequences[0]?.length || 0)
     viewer = new SINEViewer(alignmentData, canvas)
     modeInput.value = alignmentData.mode
     document.querySelector<HTMLInputElement>('#window-start')!.value = '1'
@@ -217,21 +213,7 @@ async function loadCalculationFile(file: File) {
 function renderCurrent() {
   if (!alignmentData || !viewer) return
   settings = readSettings(alignmentData.consensusLength)
-  console.log('Settings:', { 
-    maxSeq: settings.maxSequences, topN: settings.topN, bottomN: settings.bottomN,
-    randomN: settings.randomN, divMin: settings.divergenceRange[0], divMax: settings.divergenceRange[1],
-    search: `"${settings.searchText}"`, selectedIds: settings.selectedIds.size,
-    window: settings.consensusWindow, sort: settings.sortMode
-  })
   const result = viewer.render(settings)
-  // Debug: divergence distribution
-  if (alignmentData.sequences.length > 0) {
-    const divs = alignmentData.sequences.map((s) => s.divergence).slice(0, 10)
-    console.log('First 10 divergences:', divs)
-    console.log('Sequences with div > 100:', alignmentData.sequences.filter((s) => s.divergence > 100).length)
-    console.log('Sequences with div > 50:', alignmentData.sequences.filter((s) => s.divergence > 50).length)
-  }
-  console.log('Visible sequences:', result.visibleSequences.length, 'Columns:', result.columns.length)
   summaryStrip.innerHTML = `
     <strong>${result.visibleSequences.length}</strong> shown
     <strong>${alignmentData.numSequences}</strong> retained
@@ -373,14 +355,6 @@ modeInput.addEventListener('change', () => {
         const copiesFasta = originalRawSequences
           .map((raw, i) => `>${alignmentData!.sequences[i]?.id ?? `copy_${i + 1}`}\n${raw}`)
           .join('\n')
-        // Debug: log raw length distribution
-        const emptyCount = originalRawSequences.filter((r) => !r).length
-        console.log('Mode switch raw seqs:', originalRawSequences.length, 'empty:', emptyCount)
-        console.log('Raw length samples:', originalRawSequences.slice(0, 5).map((r) => r?.length ?? 0))
-        console.log('Consensus length:', alignmentData!.consensus.length, 'minLen:', Math.ceil(alignmentData!.consensus.length * 0.5))
-        const minLen = Math.ceil(alignmentData!.consensus.length * 0.5)
-        const passing = originalRawSequences.filter((r) => r && r.length >= minLen).length
-        console.log('Passing minLength filter:', passing, '/', originalRawSequences.length)
         alignmentData = calculateAlignmentData(consensusFasta, copiesFasta, {
           mode: newMode,
           maxInsLength: 50,
