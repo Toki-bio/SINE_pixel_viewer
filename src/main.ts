@@ -2,7 +2,7 @@ import './style.css'
 import { calculateAlignmentData } from './calculator'
 import { defaultViewerSettings, expandCompactAlignment, isCompactSequence, type AlignmentData, type AlignmentMode, type AnySequenceOnDisk, type ColorSchemeName, type SortMode, type ViewerSettings } from './model'
 import { sampleConsensus, sampleCopies } from './sampleData'
-import { SINEViewer } from './viewer'
+import { SINEViewer, colorSchemes } from './viewer'
 
 const app = document.querySelector<HTMLDivElement>('#app')!
 
@@ -131,6 +131,7 @@ let viewer: SINEViewer | null = null
 let settings = defaultViewerSettings(64)
 let originalConsensus = sampleConsensus
 let originalCopies = sampleCopies
+let dataFromJson = false
 
 consensusInput.value = sampleConsensus
 copyInput.value = sampleCopies
@@ -156,6 +157,7 @@ function calculate() {
     viewer = new SINEViewer(alignmentData, canvas)
     originalConsensus = consensusInput.value
     originalCopies = copyInput.value
+    dataFromJson = false
     // Update window-end to match consensus length
     const we = document.querySelector<HTMLInputElement>('#window-end')!
     we.max = String(alignmentData.consensusLength)
@@ -184,6 +186,7 @@ async function loadCalculationFile(file: File) {
       )
     }
     alignmentData = raw as unknown as AlignmentData
+    dataFromJson = true
     viewer = new SINEViewer(alignmentData, canvas)
     modeInput.value = alignmentData.mode
     document.querySelector<HTMLInputElement>('#window-start')!.value = '1'
@@ -209,6 +212,15 @@ function renderCurrent() {
     <strong>${alignmentData.stats.skippedCount}</strong> skipped
   `
   renderScaleHeader(settings, result)
+  syncLegendColors()
+}
+
+function syncLegendColors() {
+  const scheme = colorSchemes[settings.colorScheme] ?? colorSchemes.accessible
+  for (const state of ['match', 'mismatch', 'ins', 'del', 'missing'] as const) {
+    const el = document.querySelector<HTMLElement>(`.legend .${state}`)
+    if (el) el.style.background = scheme[state]
+  }
 }
 
 function renderScaleHeader(s: ViewerSettings, result: { columns: { consensusPos: number; insertOffset: number }[] }) {
@@ -316,7 +328,10 @@ calculationInput.addEventListener('change', () => {
 })
 document.querySelector<HTMLButtonElement>('#run-alignment')!.addEventListener('click', calculate)
 document.querySelector<HTMLButtonElement>('#export-png')!.addEventListener('click', () => viewer?.exportPng())
-modeInput.addEventListener('change', calculate)
+modeInput.addEventListener('change', () => {
+  if (dataFromJson) return // mode baked into pre-computed JSON, can't change
+  calculate()
+})
 document.querySelectorAll<HTMLElement>('.render-control').forEach((control) => {
   control.addEventListener('input', renderCurrent)
   control.addEventListener('change', renderCurrent)
