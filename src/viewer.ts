@@ -101,13 +101,14 @@ export class SINEViewer {
     this.lastResult = result
     const palette = colorSchemes[settings.colorScheme] ?? colorSchemes.accessible
     const leftPad = 168
-    const topPad = settings.showConsensus ? 42 : 24
+    // Consensus track moved to sticky scale header — reduce top pad
+    const topPad = settings.showConsensus ? 26 : 8
     const rightPad = settings.showDivergence ? 96 : 24
-    const bottomPad = 44
+    const bottomPad = 24
     const rowHeight = Math.max(3, settings.pixelSize)
     const columnWidth = Math.max(1, settings.pixelSize)
     const width = Math.max(640, leftPad + result.columns.length * columnWidth + rightPad)
-    const height = Math.max(280, topPad + result.visibleSequences.length * rowHeight + bottomPad)
+    const height = Math.max(200, topPad + result.visibleSequences.length * rowHeight + bottomPad)
 
     this.canvas.width = width
     this.canvas.height = height
@@ -115,23 +116,19 @@ export class SINEViewer {
     this.context.fillStyle = '#fbfaf4'
     this.context.fillRect(0, 0, width, height)
 
-    this.drawConsensus(settings, result, leftPad, columnWidth)
     this.drawLabels(result, leftPad, topPad, rowHeight)
     this.drawMatrix(result, palette, leftPad, topPad, rowHeight, columnWidth)
     if (settings.showDivergence) {
       this.drawDivergenceBars(result, leftPad + result.columns.length * columnWidth + 16, topPad, rowHeight)
     }
-    this.drawAxes(result, leftPad, topPad, rowHeight, columnWidth)
     this.drawHover(leftPad, topPad, rowHeight, columnWidth)
 
     return result
   }
 
   setHoverFromPoint(x: number, y: number, settings: ViewerSettings): string {
-    if (!this.lastResult) {
-      return ''
-    }
-    const topPad = settings.showConsensus ? 42 : 24
+    if (!this.lastResult) return ''
+    const topPad = settings.showConsensus ? 26 : 8
     const leftPad = 168
     const rowHeight = Math.max(3, settings.pixelSize)
     const columnWidth = Math.max(1, settings.pixelSize)
@@ -157,30 +154,6 @@ export class SINEViewer {
     link.download = filename
     link.href = this.canvas.toDataURL('image/png')
     link.click()
-  }
-
-  private drawConsensus(settings: ViewerSettings, result: RenderResult, leftPad: number, columnWidth: number) {
-    if (!settings.showConsensus) return
-    // At small pixel sizes show tick marks with position numbers instead of individual bases
-    this.context.fillStyle = '#24231f'
-    this.context.font = '11px "IBM Plex Mono", Consolas, monospace'
-    this.context.textBaseline = 'top'
-    const minGapPx = 32
-    const interval = Math.max(10, Math.ceil(minGapPx / columnWidth / 10) * 10)
-    result.columns.forEach((column, index) => {
-      if (column.insertOffset !== 0) return
-      const pos = column.consensusPos
-      if (columnWidth >= 8) {
-        const base = this.data.consensus[pos - 1] ?? ''
-        this.context.fillText(base, leftPad + index * columnWidth, 12)
-      } else if (pos === 1 || pos % interval === 0) {
-        const x = leftPad + index * columnWidth
-        this.context.fillStyle = '#5d574c'
-        this.context.fillRect(x, 6, Math.max(1, columnWidth), 10)
-        this.context.fillStyle = '#24231f'
-        this.context.fillText(String(pos), x + 2, 18)
-      }
-    })
   }
 
   private drawLabels(result: RenderResult, leftPad: number, topPad: number, rowHeight: number) {
@@ -224,17 +197,40 @@ export class SINEViewer {
   }
 
   private drawDivergenceBars(result: RenderResult, x: number, topPad: number, rowHeight: number) {
-    this.context.fillStyle = '#d8d1c1'
-    const barHeight = Math.max(2, rowHeight - 1)
+    const barMaxWidth = 70
+    const barHeight = Math.max(3, rowHeight - 1)
     const barYOffset = (rowHeight - barHeight) / 2
+
+    // Draw subtle scale lines at 0%, 25%, 50%
+    this.context.strokeStyle = '#e0d8c8'
+    this.context.lineWidth = 0.5
+    for (const pct of [25, 50]) {
+      const sx = x + (pct / 100) * barMaxWidth * 2
+      if (sx <= x + barMaxWidth) {
+        this.context.beginPath()
+        this.context.moveTo(sx, topPad)
+        this.context.lineTo(sx, topPad + result.visibleSequences.length * rowHeight)
+        this.context.stroke()
+      }
+    }
+
+    // Draw bars
     result.visibleSequences.forEach((sequence, row) => {
-      const width = Math.min(72, sequence.divergence * 2)
-      this.context.fillRect(x, topPad + row * rowHeight + barYOffset, width, barHeight)
+      const barW = Math.max(1, Math.min(barMaxWidth, sequence.divergence))
+      // Color gradient: green (low div) → orange (high div)
+      const t = Math.min(1, sequence.divergence / 50)
+      const r = Math.round(61 + (213 - 61) * t)
+      const g = Math.round(107 + (94 - 107) * t)
+      const b = Math.round(84 + (0 - 84) * t)
+      this.context.fillStyle = `rgb(${r},${g},${b})`
+      this.context.fillRect(x, topPad + row * rowHeight + barYOffset, barW, barHeight)
     })
-    this.context.fillStyle = '#3d3a34'
-    this.context.font = '10px "IBM Plex Mono", Consolas, monospace'
+
+    // Label
+    this.context.fillStyle = '#5d574c'
+    this.context.font = '9px "IBM Plex Mono", Consolas, monospace'
     this.context.textBaseline = 'bottom'
-    this.context.fillText('%div', x, Math.max(14, topPad - 4))
+    this.context.fillText('%div', x, Math.max(12, topPad - 2))
   }
 
   private drawAxes(result: RenderResult, leftPad: number, topPad: number, rowHeight: number, columnWidth: number) {

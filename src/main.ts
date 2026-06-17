@@ -13,102 +13,86 @@ app.innerHTML = `
       <h1>SINE Pixel Viewer</h1>
     </div>
     <div class="header-actions">
-      <button id="toggle-panel" class="toggle-panel-btn" type="button" title="Toggle control panel">☰ Panel</button>
+      <button id="toggle-panel" class="toggle-panel-btn" type="button" title="Toggle control panel">☰</button>
       <button id="reset-button" type="button">Reset</button>
-      <button id="load-calculation" type="button">Load Calculation JSON</button>
+      <button id="load-calculation" type="button">Load JSON</button>
       <input id="calculation-input" type="file" accept="application/json,.json" hidden>
-      <button id="run-alignment" type="button">Run Alignment</button>
+      <button id="run-alignment" type="button">Run</button>
       <button id="export-png" type="button">Export PNG</button>
     </div>
   </header>
 
   <main class="workspace">
     <aside class="control-panel" aria-label="Alignment controls">
-      <label>
-        Consensus FASTA
-        <textarea id="consensus-input" spellcheck="false"></textarea>
+      <label>Consensus FASTA
+        <textarea id="consensus-input" spellcheck="false" rows="3"></textarea>
       </label>
-      <label>
-        SINE Copy FASTA
-        <textarea id="copy-input" spellcheck="false"></textarea>
+      <label>SINE Copy FASTA
+        <textarea id="copy-input" spellcheck="false" rows="3"></textarea>
       </label>
 
       <div class="control-grid">
-        <label>
-          Mode
-          <select id="mode-input">
+        <label>Mode
+          <select id="mode-input" class="render-control">
             <option value="full">full</option>
             <option value="sub_del" selected>sub_del</option>
             <option value="sub_only">sub_only</option>
           </select>
         </label>
-        <label>
-          Pixel Size
-          <input class="render-control" id="pixel-size" type="number" min="1" max="10" value="4">
+        <label>Pixel <span class="range-value" id="pixel-size-val">4</span>
+          <input class="render-control" id="pixel-size" type="range" min="1" max="10" value="4">
         </label>
-        <label>
-          Window Start
-          <input class="render-control" id="window-start" type="number" min="1" value="1">
-        </label>
-        <label>
-          Window End
-          <input class="render-control" id="window-end" type="number" min="1" value="64">
-        </label>
-        <label>
-          Min Divergence
-          <input class="render-control" id="div-min" type="number" min="0" max="100" value="0">
-        </label>
-        <label>
-          Max Divergence
-          <input class="render-control" id="div-max" type="number" min="0" max="100" value="100">
-        </label>
-        <label>
-          Max Sequences
-          <input class="render-control" id="max-sequences" type="number" min="1" max="5000" value="500">
-        </label>
-        <label>
-          Top N
-          <input class="render-control" id="top-n" type="number" min="0" max="5000" value="0">
-        </label>
-        <label>
-          Bottom N
-          <input class="render-control" id="bottom-n" type="number" min="0" max="5000" value="0">
-        </label>
-        <label>
-          Random N
-          <input class="render-control" id="random-n" type="number" min="0" max="5000" value="0">
-        </label>
-        <label>
-          Color Scheme
+        <label>Color
           <select class="render-control" id="color-scheme">
             <option value="accessible" selected>accessible</option>
             <option value="classic">classic</option>
             <option value="grayscale">grayscale</option>
           </select>
         </label>
-        <label>
-          Sort
+        <label>Window start <span class="range-value" id="window-start-val">1</span>
+          <input class="render-control" id="window-start" type="number" min="1" value="1" style="width:100%">
+        </label>
+        <label>Window end <span class="range-value" id="window-end-val">64</span>
+          <input class="render-control" id="window-end" type="number" min="1" value="64" style="width:100%">
+        </label>
+        <label>Sort
           <select class="render-control" id="sort-mode">
-            <option value="divergence-asc" selected>divergence asc</option>
-            <option value="divergence-desc">divergence desc</option>
+            <option value="divergence-asc" selected>div asc</option>
+            <option value="divergence-desc">div desc</option>
             <option value="id">id</option>
             <option value="input">input</option>
           </select>
         </label>
+        <label>Div min%
+          <input class="render-control" id="div-min" type="number" min="0" max="100" value="0" style="width:100%">
+        </label>
+        <label>Div max%
+          <input class="render-control" id="div-max" type="number" min="0" max="100" value="100" style="width:100%">
+        </label>
+        <label>Max seq <span class="range-value" id="max-sequences-val">500</span>
+          <input class="render-control" id="max-sequences" type="range" min="10" max="5000" value="500">
+        </label>
+        <label>Top N <span class="range-value" id="top-n-val">0</span>
+          <input class="render-control" id="top-n" type="range" min="0" max="500" value="0">
+        </label>
+        <label>Bottom N <span class="range-value" id="bottom-n-val">0</span>
+          <input class="render-control" id="bottom-n" type="range" min="0" max="500" value="0">
+        </label>
+        <label>Random N <span class="range-value" id="random-n-val">0</span>
+          <input class="render-control" id="random-n" type="range" min="0" max="500" value="0">
+        </label>
       </div>
 
-      <label>
-        Search IDs
-        <input class="render-control" id="search-text" type="search" placeholder="SINE_004">
+      <label>Search IDs
+        <input class="render-control" id="search-text" type="search" placeholder="filter by id...">
       </label>
-      <label>
-        Selected IDs, Comma Separated
-        <input class="render-control" id="selected-ids" type="text" placeholder="SINE_001_perfect, SINE_004_insertion">
+      <label>Selected IDs
+        <input class="render-control" id="selected-ids" type="text" placeholder="id1, id2, ...">
       </label>
 
       <div class="toggle-row">
-        <label><input class="render-control" id="show-consensus" type="checkbox" checked> consensus track</label>
-        <label><input class="render-control" id="show-divergence" type="checkbox" checked> divergence bars</label>
+        <label><input class="render-control" id="show-consensus" type="checkbox" checked> consensus</label>
+        <label><input class="render-control" id="show-divergence" type="checkbox" checked> divergence</label>
       </div>
     </aside>
 
@@ -121,12 +105,14 @@ app.innerHTML = `
         <span><i class="del"></i>deletion</span>
         <span><i class="missing"></i>missing</span>
       </div>
-      <div class="canvas-wrap">
+      <div class="canvas-wrap" id="canvas-wrap">
+        <div class="scale-header" id="scale-header"></div>
         <canvas id="alignment-canvas"></canvas>
       </div>
-      <output id="hover-output" class="hover-output">Pixel inspector</output>
+      <output id="hover-output" class="hover-output">Hover over the matrix</output>
     </section>
   </main>
+  <div class="canvas-tooltip" id="canvas-tooltip"></div>
 `
 
 const consensusInput = document.querySelector<HTMLTextAreaElement>('#consensus-input')!
@@ -136,16 +122,28 @@ const calculationInput = document.querySelector<HTMLInputElement>('#calculation-
 const canvas = document.querySelector<HTMLCanvasElement>('#alignment-canvas')!
 const hoverOutput = document.querySelector<HTMLOutputElement>('#hover-output')!
 const summaryStrip = document.querySelector<HTMLDivElement>('#summary-strip')!
+const scaleHeader = document.querySelector<HTMLDivElement>('#scale-header')!
+const tooltip = document.querySelector<HTMLDivElement>('#canvas-tooltip')!
+const canvasWrap = document.querySelector<HTMLDivElement>('#canvas-wrap')!
 
 let alignmentData: AlignmentData | null = null
 let viewer: SINEViewer | null = null
 let settings = defaultViewerSettings(64)
-// Track the last committed data so Reset can revert to it
 let originalConsensus = sampleConsensus
 let originalCopies = sampleCopies
 
 consensusInput.value = sampleConsensus
 copyInput.value = sampleCopies
+
+// ── Range slider value sync ──
+function syncRangeDisplay(id: string) {
+  const input = document.querySelector<HTMLInputElement>(`#${id}`)!
+  const disp = document.querySelector<HTMLSpanElement>(`#${id}-val`)
+  if (disp) disp.textContent = input.value
+}
+document.querySelectorAll<HTMLInputElement>('input[type="range"].render-control').forEach((r) => {
+  r.addEventListener('input', () => syncRangeDisplay(r.id))
+})
 
 function calculate() {
   try {
@@ -156,9 +154,14 @@ function calculate() {
       minSequenceLengthRatio: 0.5,
     })
     viewer = new SINEViewer(alignmentData, canvas)
-    // Remember this data so Reset can restore it later
     originalConsensus = consensusInput.value
     originalCopies = copyInput.value
+    // Update window-end to match consensus length
+    const we = document.querySelector<HTMLInputElement>('#window-end')!
+    we.max = String(alignmentData.consensusLength)
+    if (Number(we.value) > alignmentData.consensusLength) we.value = String(alignmentData.consensusLength)
+    const wev = document.querySelector<HTMLSpanElement>('#window-end-val')
+    if (wev) wev.textContent = we.value
     renderCurrent()
   } catch (error) {
     alignmentData = null
@@ -173,7 +176,6 @@ async function loadCalculationFile(file: File) {
     if (!isAlignmentData(raw)) {
       throw new Error('Calculation JSON does not match the SINE Pixel Viewer alignment schema')
     }
-    // Expand compact format (states+bases) to full pixels if needed
     const seqs = raw.sequences as AnySequenceOnDisk[] | undefined
     if (raw.format === 'compact' || seqs?.some((s) => isCompactSequence(s))) {
       const consensus = raw.consensus as string
@@ -195,19 +197,39 @@ async function loadCalculationFile(file: File) {
 }
 
 function renderCurrent() {
-  if (!alignmentData || !viewer) {
-    return
-  }
+  if (!alignmentData || !viewer) return
   settings = readSettings(alignmentData.consensusLength)
   const result = viewer.render(settings)
   summaryStrip.innerHTML = `
     <strong>${result.visibleSequences.length}</strong> shown
     <strong>${alignmentData.numSequences}</strong> retained
-    <strong>${alignmentData.consensusLength}</strong> consensus bp
-    <strong>${alignmentData.mode}</strong> mode
-    <strong>${result.columns.length}</strong> columns
-    <strong>${alignmentData.stats.skippedCount}</strong> length-filtered
+    <strong>${alignmentData.consensusLength}</strong> bp
+    <strong>${alignmentData.mode}</strong>
+    <strong>${result.columns.length}</strong> cols
+    <strong>${alignmentData.stats.skippedCount}</strong> skipped
   `
+  renderScaleHeader(settings, result)
+}
+
+function renderScaleHeader(s: ViewerSettings, result: { columns: { consensusPos: number; insertOffset: number }[] }) {
+  const columnWidth = Math.max(1, s.pixelSize)
+  const minGap = 50
+  const interval = Math.max(10, Math.ceil(minGap / columnWidth / 10) * 10)
+  const leftPad = 168
+  let html = ''
+  for (let i = 0; i < result.columns.length; i++) {
+    const col = result.columns[i]
+    if (col.insertOffset !== 0) continue
+    const pos = col.consensusPos
+    if (pos === 1 || pos % interval === 0) {
+      const x = leftPad + i * columnWidth
+      html += `<span class="tick" style="left:${x}px;height:6px"></span>`
+      html += `<span class="tick-label" style="left:${x}px">${pos}</span>`
+    }
+  }
+  scaleHeader.innerHTML = html
+  // Push scale header width to match canvas
+  scaleHeader.style.minWidth = `${leftPad + result.columns.length * columnWidth + 96}px`
 }
 
 function readSettings(consensusLength: number): ViewerSettings {
@@ -232,10 +254,7 @@ function readSettings(consensusLength: number): ViewerSettings {
   next.sortMode = document.querySelector<HTMLSelectElement>('#sort-mode')!.value as SortMode
   next.searchText = document.querySelector<HTMLInputElement>('#search-text')!.value.trim()
   next.selectedIds = new Set(
-    document.querySelector<HTMLInputElement>('#selected-ids')!.value
-      .split(',')
-      .map((id) => id.trim())
-      .filter(Boolean),
+    document.querySelector<HTMLInputElement>('#selected-ids')!.value.split(',').map((id) => id.trim()).filter(Boolean),
   )
   next.showConsensus = document.querySelector<HTMLInputElement>('#show-consensus')!.checked
   next.showDivergence = document.querySelector<HTMLInputElement>('#show-divergence')!.checked
@@ -252,27 +271,24 @@ function clamp(value: number, min: number, max: number) {
 }
 
 function isAlignmentData(value: unknown): value is Record<string, unknown> {
-  if (!value || typeof value !== 'object') {
-    return false
-  }
-  const candidate = value as Record<string, unknown>
-  return typeof candidate.consensus === 'string'
-    && typeof candidate.consensusLength === 'number'
-    && typeof candidate.numSequences === 'number'
-    && (candidate.mode === 'full' || candidate.mode === 'sub_del' || candidate.mode === 'sub_only')
-    && Array.isArray(candidate.sequences)
+  if (!value || typeof value !== 'object') return false
+  const c = value as Record<string, unknown>
+  return typeof c.consensus === 'string'
+    && typeof c.consensusLength === 'number'
+    && typeof c.numSequences === 'number'
+    && (c.mode === 'full' || c.mode === 'sub_del' || c.mode === 'sub_only')
+    && Array.isArray(c.sequences)
 }
 
 function resetAllControls() {
-  document.querySelector<HTMLInputElement>('#pixel-size')!.value = '4'
+  document.querySelector<HTMLInputElement>('#pixel-size')!.value = '4'; syncRangeDisplay('pixel-size')
   document.querySelector<HTMLInputElement>('#window-start')!.value = '1'
-  // window-end will be set by calculate() → renderCurrent() based on consensus length
   document.querySelector<HTMLInputElement>('#div-min')!.value = '0'
   document.querySelector<HTMLInputElement>('#div-max')!.value = '100'
-  document.querySelector<HTMLInputElement>('#max-sequences')!.value = '500'
-  document.querySelector<HTMLInputElement>('#top-n')!.value = '0'
-  document.querySelector<HTMLInputElement>('#bottom-n')!.value = '0'
-  document.querySelector<HTMLInputElement>('#random-n')!.value = '0'
+  document.querySelector<HTMLInputElement>('#max-sequences')!.value = '500'; syncRangeDisplay('max-sequences')
+  document.querySelector<HTMLInputElement>('#top-n')!.value = '0'; syncRangeDisplay('top-n')
+  document.querySelector<HTMLInputElement>('#bottom-n')!.value = '0'; syncRangeDisplay('bottom-n')
+  document.querySelector<HTMLInputElement>('#random-n')!.value = '0'; syncRangeDisplay('random-n')
   document.querySelector<HTMLSelectElement>('#color-scheme')!.value = 'accessible'
   document.querySelector<HTMLSelectElement>('#sort-mode')!.value = 'divergence-asc'
   document.querySelector<HTMLInputElement>('#search-text')!.value = ''
@@ -281,6 +297,7 @@ function resetAllControls() {
   document.querySelector<HTMLInputElement>('#show-divergence')!.checked = true
 }
 
+// ── Event listeners ──
 document.querySelector<HTMLButtonElement>('#toggle-panel')!.addEventListener('click', () => {
   document.querySelector<HTMLDivElement>('.workspace')!.classList.toggle('panel-collapsed')
 })
@@ -294,9 +311,7 @@ document.querySelector<HTMLButtonElement>('#reset-button')!.addEventListener('cl
 document.querySelector<HTMLButtonElement>('#load-calculation')!.addEventListener('click', () => calculationInput.click())
 calculationInput.addEventListener('change', () => {
   const file = calculationInput.files?.[0]
-  if (file) {
-    void loadCalculationFile(file)
-  }
+  if (file) { void loadCalculationFile(file) }
   calculationInput.value = ''
 })
 document.querySelector<HTMLButtonElement>('#run-alignment')!.addEventListener('click', calculate)
@@ -306,13 +321,31 @@ document.querySelectorAll<HTMLElement>('.render-control').forEach((control) => {
   control.addEventListener('input', renderCurrent)
   control.addEventListener('change', renderCurrent)
 })
+
+// ── Canvas mouse: hover tooltip ──
 canvas.addEventListener('mousemove', (event) => {
-  if (!viewer) {
-    return
-  }
+  if (!viewer) return
   const rect = canvas.getBoundingClientRect()
-  hoverOutput.textContent = viewer.setHoverFromPoint(event.clientX - rect.left, event.clientY - rect.top, settings)
+  const text = viewer.setHoverFromPoint(event.clientX - rect.left, event.clientY - rect.top, settings)
+  if (text) {
+    tooltip.textContent = text
+    tooltip.style.display = 'block'
+    tooltip.style.left = `${event.clientX + 14}px`
+    tooltip.style.top = `${event.clientY - 10}px`
+  } else {
+    tooltip.style.display = 'none'
+  }
   viewer.render(settings)
+  // Also update hover output
+  hoverOutput.textContent = text || 'Hover over the matrix'
+})
+canvas.addEventListener('mouseleave', () => {
+  tooltip.style.display = 'none'
+})
+
+// Sync canvas-wrap scroll with scale header
+canvasWrap.addEventListener('scroll', () => {
+  scaleHeader.scrollLeft = canvasWrap.scrollLeft
 })
 
 calculate()
