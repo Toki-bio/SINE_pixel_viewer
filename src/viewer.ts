@@ -233,21 +233,6 @@ export class SINEViewer {
     this.context.fillText('%div', x, Math.max(12, topPad - 2))
   }
 
-  private drawAxes(result: RenderResult, leftPad: number, topPad: number, rowHeight: number, columnWidth: number) {
-    const y = topPad + result.visibleSequences.length * rowHeight + 8
-    this.context.fillStyle = '#5d574c'
-    this.context.font = '10px "IBM Plex Mono", Consolas, monospace'
-    this.context.textBaseline = 'top'
-    // Adaptive spacing: show label at least every ~50px
-    const minGapPx = 50
-    const interval = Math.max(10, Math.ceil(minGapPx / columnWidth / 10) * 10)
-    result.columns.forEach((column, index) => {
-      if (column.insertOffset === 0 && (column.consensusPos === 1 || column.consensusPos % interval === 0)) {
-        this.context.fillText(String(column.consensusPos), leftPad + index * columnWidth, y)
-      }
-    })
-  }
-
   private drawHover(leftPad: number, topPad: number, rowHeight: number, columnWidth: number) {
     if (!this.hoveredCell) {
       return
