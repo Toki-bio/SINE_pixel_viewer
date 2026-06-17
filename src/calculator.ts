@@ -151,7 +151,7 @@ function projectAlignment(
 ): SequenceAlignment {
   const pixels: PixelCell[] = []
   let consensusPos = 0
-  let currentInsertionAnchor = 0
+  let currentInsertionAnchor = 1  // anchor leading insertions to position 1
   let currentInsertionOffset = 0
   let mismatches = 0
   let deletions = 0

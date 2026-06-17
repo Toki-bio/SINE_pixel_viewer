@@ -172,6 +172,7 @@ export interface ViewerSettings {
   maxSequences: number
   consensusWindow: [number, number]
   pixelSize: number
+  pixelWidth: number
   colorScheme: ColorSchemeName
   showConsensus: boolean
   showDivergence: boolean
@@ -210,6 +211,7 @@ export const defaultViewerSettings = (consensusLength: number): ViewerSettings =
   maxSequences: 500,
   consensusWindow: [1, consensusLength],
   pixelSize: 4,
+  pixelWidth: 4,
   colorScheme: 'accessible',
   showConsensus: true,
   showDivergence: true,

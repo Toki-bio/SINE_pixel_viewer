@@ -39,8 +39,11 @@ app.innerHTML = `
             <option value="sub_only">sub_only</option>
           </select>
         </label>
-        <label>Pixel <span class="range-value" id="pixel-size-val">4</span>
-          <input class="render-control" id="pixel-size" type="range" min="1" max="10" value="4">
+        <label>Px H <span class="range-value" id="pixel-size-val">4</span>
+          <input class="render-control" id="pixel-size" type="range" min="1" max="20" value="4">
+        </label>
+        <label>Px W <span class="range-value" id="pixel-width-val">4</span>
+          <input class="render-control" id="pixel-width" type="range" min="1" max="20" value="4">
         </label>
         <label>Color
           <select class="render-control" id="color-scheme">
@@ -230,7 +233,7 @@ function syncLegendColors() {
 }
 
 function renderScaleHeader(s: ViewerSettings, result: { columns: { consensusPos: number; insertOffset: number }[] }) {
-  const columnWidth = Math.max(1, s.pixelSize)
+  const columnWidth = Math.max(1, s.pixelWidth)
   const minGap = 50
   const interval = Math.max(10, Math.ceil(minGap / columnWidth / 10) * 10)
   const leftPad = 168
@@ -253,6 +256,7 @@ function renderScaleHeader(s: ViewerSettings, result: { columns: { consensusPos:
 function readSettings(consensusLength: number): ViewerSettings {
   const next = defaultViewerSettings(consensusLength)
   next.pixelSize = numericValue('#pixel-size', 4)
+  next.pixelWidth = numericValue('#pixel-width', 4)
   next.consensusWindow = [
     clamp(numericValue('#window-start', 1), 1, consensusLength),
     clamp(numericValue('#window-end', consensusLength), 1, consensusLength),
@@ -300,6 +304,7 @@ function isAlignmentData(value: unknown): value is Record<string, unknown> {
 
 function resetAllControls() {
   document.querySelector<HTMLInputElement>('#pixel-size')!.value = '4'; syncRangeDisplay('pixel-size')
+  document.querySelector<HTMLInputElement>('#pixel-width')!.value = '4'; syncRangeDisplay('pixel-width')
   document.querySelector<HTMLInputElement>('#window-start')!.value = '1'
   document.querySelector<HTMLInputElement>('#div-min')!.value = '0'
   document.querySelector<HTMLInputElement>('#div-max')!.value = '100'
@@ -348,6 +353,10 @@ modeInput.addEventListener('change', () => {
         maxDelLength: 100,
         minSequenceLengthRatio: 0.5,
       })
+      // Preserve raw sequences so further mode switches work
+      for (const seq of alignmentData.sequences) {
+        seq.rawSequence = reconstructRawFromPixels(seq.pixels)
+      }
       viewer = new SINEViewer(alignmentData, canvas)
       renderCurrent()
     } catch (error) {
