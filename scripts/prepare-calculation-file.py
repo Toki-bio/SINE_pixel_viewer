@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 
-DNA_PATTERN = re.compile(r"^[ACGTN]+$", re.IGNORECASE)
+DNA_PATTERN = re.compile(r"^[ACGTNRYKMSWBDHV]+$", re.IGNORECASE)
 GAP = "-"
 MODES = {"full", "sub_del", "sub_only"}
 

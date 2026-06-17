@@ -1,6 +1,6 @@
 import type { FastaRecord } from './model'
 
-const dnaPattern = /^[ACGTN]+$/i
+const dnaPattern = /^[ACGTNRYKMSWBDHV]+$/i
 
 export function parseFasta(input: string, fallbackPrefix = 'sequence'): FastaRecord[] {
   const records: FastaRecord[] = []
