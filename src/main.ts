@@ -173,9 +173,10 @@ async function loadCalculationFile(file: File) {
       throw new Error('Calculation JSON does not match the SINE Pixel Viewer alignment schema')
     }
     // Expand compact format (states+bases) to full pixels if needed
-    if (raw.format === 'compact' || raw.sequences?.some((s: AnySequenceOnDisk) => isCompactSequence(s))) {
+    const seqs = raw.sequences as AnySequenceOnDisk[] | undefined
+    if (raw.format === 'compact' || seqs?.some((s) => isCompactSequence(s))) {
       const consensus = raw.consensus as string
-      raw.sequences = (raw.sequences as AnySequenceOnDisk[]).map((seq) =>
+      raw.sequences = seqs!.map((seq) =>
         isCompactSequence(seq) ? expandCompactAlignment(seq, consensus) : seq,
       )
     }
