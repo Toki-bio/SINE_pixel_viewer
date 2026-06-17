@@ -167,7 +167,7 @@ function projectAlignment(
       insertions += 1
       currentInsertionOffset += 1
       deletionRunLength = 0
-      if (options.mode === 'full' && currentInsertionOffset <= options.maxInsLength) {
+      if ((options.mode === 'full' || options.mode === 'sub_only') && currentInsertionOffset <= options.maxInsLength) {
         pixels.push({
           consensusPos: currentInsertionAnchor,
           insertOffset: currentInsertionOffset,

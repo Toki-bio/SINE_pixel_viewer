@@ -151,7 +151,7 @@ def project_alignment(
             insertions += 1
             current_insertion_offset += 1
             deletion_run_length = 0
-            if mode == "full" and current_insertion_offset <= max_ins_length:
+            if (mode == "full" or mode == "sub_only") and current_insertion_offset <= max_ins_length:
                 key = str(current_insertion_anchor)
                 if key not in insertions_dict:
                     insertions_dict[key] = []
