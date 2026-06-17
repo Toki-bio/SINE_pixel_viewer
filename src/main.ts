@@ -137,6 +137,7 @@ let settings = defaultViewerSettings(64)
 let originalConsensus = sampleConsensus
 let originalCopies = sampleCopies
 let dataFromJson = false
+let originalRawSequences: string[] = []  // preserved across mode switches
 
 consensusInput.value = sampleConsensus
 copyInput.value = sampleCopies
@@ -192,12 +193,11 @@ async function loadCalculationFile(file: File) {
     }
     alignmentData = raw as unknown as AlignmentData
     dataFromJson = true
-    // Ensure every sequence has rawSequence for mode switching
-    for (const seq of alignmentData.sequences) {
-      if (!seq.rawSequence || seq.rawSequence.length === 0) {
-        seq.rawSequence = reconstructRawFromPixels(seq.pixels)
-      }
-    }
+    // Store original raw sequences — never overwritten by mode switches
+    originalRawSequences = alignmentData.sequences.map((seq) => {
+      if (seq.rawSequence && seq.rawSequence.length > 0) return seq.rawSequence
+      return reconstructRawFromPixels(seq.pixels)
+    })
     viewer = new SINEViewer(alignmentData, canvas)
     modeInput.value = alignmentData.mode
     document.querySelector<HTMLInputElement>('#window-start')!.value = '1'
@@ -346,26 +346,27 @@ document.querySelector<HTMLButtonElement>('#export-png')!.addEventListener('clic
 modeInput.addEventListener('change', () => {
   if (dataFromJson && alignmentData) {
     // Re-derive alignment from stored raw sequences with new mode
-    try {
-      const consensusFasta = `>${alignmentData.consensusId}\n${alignmentData.consensus}`
-      const copiesFasta = alignmentData.sequences
-        .map((seq) => `>${seq.id}\n${seq.rawSequence ?? ''}`)
-        .join('\n')
-      alignmentData = calculateAlignmentData(consensusFasta, copiesFasta, {
-        mode: modeInput.value as AlignmentMode,
-        maxInsLength: 50,
-        maxDelLength: 100,
-        minSequenceLengthRatio: 0.5,
-      })
-      // Preserve raw sequences so further mode switches work
-      for (const seq of alignmentData.sequences) {
-        seq.rawSequence = reconstructRawFromPixels(seq.pixels)
+    const newMode = modeInput.value as AlignmentMode
+    summaryStrip.textContent = `Recalculating with ${newMode} mode...`
+    // Use setTimeout so the UI updates before heavy work
+    setTimeout(() => {
+      try {
+        const consensusFasta = `>${alignmentData!.consensusId}\n${alignmentData!.consensus}`
+        const copiesFasta = originalRawSequences
+          .map((raw, i) => `>${alignmentData!.sequences[i]?.id ?? `copy_${i + 1}`}\n${raw}`)
+          .join('\n')
+        alignmentData = calculateAlignmentData(consensusFasta, copiesFasta, {
+          mode: newMode,
+          maxInsLength: 50,
+          maxDelLength: 100,
+          minSequenceLengthRatio: 0.5,
+        })
+        viewer = new SINEViewer(alignmentData!, canvas)
+        renderCurrent()
+      } catch (error) {
+        summaryStrip.textContent = error instanceof Error ? error.message : String(error)
       }
-      viewer = new SINEViewer(alignmentData, canvas)
-      renderCurrent()
-    } catch (error) {
-      summaryStrip.textContent = error instanceof Error ? error.message : String(error)
-    }
+    }, 10)
     return
   }
   if (!dataFromJson) calculate()

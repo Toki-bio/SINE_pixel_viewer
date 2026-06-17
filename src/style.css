@@ -92,6 +92,7 @@ h1 {
   gap: 12px;
   max-width: 1500px;
   margin: 0 auto;
+  height: calc(100vh - 90px);
   transition: grid-template-columns 0.2s;
 }
 
