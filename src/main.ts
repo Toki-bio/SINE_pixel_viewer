@@ -190,6 +190,9 @@ async function loadCalculationFile(file: File) {
       raw.sequences = seqs!.map((seq) =>
         isCompactSequence(seq) ? expandCompactAlignment(seq, consensus) : seq,
       )
+      // Debug: check first expanded sequence's rawSequence
+      const firstExpanded = (raw.sequences as Array<Record<string, unknown>>)[0]
+      console.log('First expanded rawSequence length:', (firstExpanded?.rawSequence as string)?.length ?? 'MISSING')
     }
     alignmentData = raw as unknown as AlignmentData
     dataFromJson = true
