@@ -219,11 +219,18 @@ function renderCurrent() {
   settings = readSettings(alignmentData.consensusLength)
   console.log('Settings:', { 
     maxSeq: settings.maxSequences, topN: settings.topN, bottomN: settings.bottomN,
-    randomN: settings.randomN, div: settings.divergenceRange,
+    randomN: settings.randomN, divMin: settings.divergenceRange[0], divMax: settings.divergenceRange[1],
     search: `"${settings.searchText}"`, selectedIds: settings.selectedIds.size,
     window: settings.consensusWindow, sort: settings.sortMode
   })
   const result = viewer.render(settings)
+  // Debug: divergence distribution
+  if (alignmentData.sequences.length > 0) {
+    const divs = alignmentData.sequences.map((s) => s.divergence).slice(0, 10)
+    console.log('First 10 divergences:', divs)
+    console.log('Sequences with div > 100:', alignmentData.sequences.filter((s) => s.divergence > 100).length)
+    console.log('Sequences with div > 50:', alignmentData.sequences.filter((s) => s.divergence > 50).length)
+  }
   console.log('Visible sequences:', result.visibleSequences.length, 'Columns:', result.columns.length)
   summaryStrip.innerHTML = `
     <strong>${result.visibleSequences.length}</strong> shown
