@@ -377,9 +377,28 @@ document.querySelectorAll<HTMLElement>('.render-control').forEach((control) => {
 
 // ── Canvas mouse: hover tooltip ──
 canvas.addEventListener('mousemove', (event) => {
-  if (!viewer) return
+  if (!viewer || !alignmentData) return
   const rect = canvas.getBoundingClientRect()
-  const text = viewer.setHoverFromPoint(event.clientX - rect.left, event.clientY - rect.top, settings)
+  const x = event.clientX - rect.left
+  const y = event.clientY - rect.top
+  const topPad = settings.showConsensus ? 26 : 8
+  const rowHeight = Math.max(1, settings.pixelSize)
+
+  // Hover over label area — show full sequence name
+  if (x < settings.labelWidth && y >= topPad) {
+    const row = Math.floor((y - topPad) / rowHeight)
+    if (row >= 0 && row < alignmentData.sequences.length) {
+      const name = alignmentData.sequences[row].id
+      tooltip.textContent = name
+      tooltip.style.display = 'block'
+      tooltip.style.left = `${event.clientX + 14}px`
+      tooltip.style.top = `${event.clientY - 10}px`
+      hoverOutput.textContent = name
+      return
+    }
+  }
+
+  const text = viewer.setHoverFromPoint(x, y, settings)
   if (text) {
     tooltip.textContent = text
     tooltip.style.display = 'block'
@@ -389,7 +408,6 @@ canvas.addEventListener('mousemove', (event) => {
     tooltip.style.display = 'none'
   }
   viewer.render(settings)
-  // Also update hover output
   hoverOutput.textContent = text || 'Hover over the matrix'
 })
 canvas.addEventListener('mouseleave', () => {

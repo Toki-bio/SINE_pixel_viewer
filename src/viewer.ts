@@ -105,7 +105,7 @@ export class SINEViewer {
     const topPad = settings.showConsensus ? 26 : 8
     const rightPad = settings.showDivergence ? 96 : 24
     const bottomPad = 24
-    const rowHeight = Math.max(3, settings.pixelSize)
+    const rowHeight = Math.max(1, settings.pixelSize)
     const columnWidth = Math.max(1, settings.pixelWidth)
     const width = Math.max(640, leftPad + result.columns.length * columnWidth + rightPad)
     const height = Math.max(200, topPad + result.visibleSequences.length * rowHeight + bottomPad)
@@ -130,7 +130,7 @@ export class SINEViewer {
     if (!this.lastResult) return ''
     const topPad = settings.showConsensus ? 26 : 8
     const leftPad = settings.labelWidth
-    const rowHeight = Math.max(3, settings.pixelSize)
+    const rowHeight = Math.max(1, settings.pixelSize)
     const columnWidth = Math.max(1, settings.pixelWidth)
     const row = Math.floor((y - topPad) / rowHeight)
     const column = Math.floor((x - leftPad) / columnWidth)

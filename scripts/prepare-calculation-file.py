@@ -188,6 +188,7 @@ def project_alignment(
     result: dict[str, object] = {
         "id": record["id"],
         "states": "".join(states),
+        "raw": record["sequence"],  # original raw query for mode switching
         "divergence": ((mismatches + indels) / denominator) * 100,
         "divergenceSubstitution": (mismatches / denominator) * 100,
         "divergenceIndel": (indels / denominator) * 100,

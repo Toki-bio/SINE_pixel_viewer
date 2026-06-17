@@ -45,6 +45,8 @@ export interface CompactSequenceAlignment {
   states: string
   bases?: Record<string, string>
   insertions?: Record<string, string>
+  /** Original raw query sequence — enables accurate mode switching */
+  raw?: string
   divergence: number
   divergenceSubstitution: number
   divergenceIndel: number
@@ -96,16 +98,20 @@ export function expandCompactAlignment(
     }
   }
 
-  // Reconstruct raw (ungapped) query sequence for mode switching
-  let raw = ''
-  for (let i = 0; i < consensusLen; i++) {
-    const pos = i + 1
-    const stateChar = compact.states[i] ?? '.'
-    if (stateChar === 'D' || stateChar === '.') continue
-    raw += compact.bases?.[String(pos)] ?? consensus[i]
-    // Append insertion bases
-    const ins = compact.insertions?.[String(pos)]
-    if (ins) raw += ins
+  // Reconstruct raw sequence — prefer stored original, fall back to reconstruction
+  let raw: string
+  if (compact.raw) {
+    raw = compact.raw
+  } else {
+    raw = ''
+    for (let i = 0; i < consensusLen; i++) {
+      const pos = i + 1
+      const stateChar = compact.states[i] ?? '.'
+      if (stateChar === 'D' || stateChar === '.') continue
+      raw += compact.bases?.[String(pos)] ?? consensus[i]
+      const ins = compact.insertions?.[String(pos)]
+      if (ins) raw += ins
+    }
   }
 
   return {
