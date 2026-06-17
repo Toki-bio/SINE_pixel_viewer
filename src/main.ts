@@ -198,6 +198,7 @@ async function loadCalculationFile(file: File) {
       if (seq.rawSequence && seq.rawSequence.length > 0) return seq.rawSequence
       return reconstructRawFromPixels(seq.pixels)
     })
+    console.log('Loaded', originalRawSequences.length, 'raw sequences, first length:', originalRawSequences[0]?.length || 0)
     viewer = new SINEViewer(alignmentData, canvas)
     modeInput.value = alignmentData.mode
     document.querySelector<HTMLInputElement>('#window-start')!.value = '1'
@@ -355,6 +356,14 @@ modeInput.addEventListener('change', () => {
         const copiesFasta = originalRawSequences
           .map((raw, i) => `>${alignmentData!.sequences[i]?.id ?? `copy_${i + 1}`}\n${raw}`)
           .join('\n')
+        // Debug: log raw length distribution
+        const emptyCount = originalRawSequences.filter((r) => !r).length
+        console.log('Mode switch raw seqs:', originalRawSequences.length, 'empty:', emptyCount)
+        console.log('Raw length samples:', originalRawSequences.slice(0, 5).map((r) => r?.length ?? 0))
+        console.log('Consensus length:', alignmentData!.consensus.length, 'minLen:', Math.ceil(alignmentData!.consensus.length * 0.5))
+        const minLen = Math.ceil(alignmentData!.consensus.length * 0.5)
+        const passing = originalRawSequences.filter((r) => r && r.length >= minLen).length
+        console.log('Passing minLength filter:', passing, '/', originalRawSequences.length)
         alignmentData = calculateAlignmentData(consensusFasta, copiesFasta, {
           mode: newMode,
           maxInsLength: 50,
