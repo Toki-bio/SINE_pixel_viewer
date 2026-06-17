@@ -217,7 +217,14 @@ async function loadCalculationFile(file: File) {
 function renderCurrent() {
   if (!alignmentData || !viewer) return
   settings = readSettings(alignmentData.consensusLength)
+  console.log('Settings:', { 
+    maxSeq: settings.maxSequences, topN: settings.topN, bottomN: settings.bottomN,
+    randomN: settings.randomN, div: settings.divergenceRange,
+    search: `"${settings.searchText}"`, selectedIds: settings.selectedIds.size,
+    window: settings.consensusWindow, sort: settings.sortMode
+  })
   const result = viewer.render(settings)
+  console.log('Visible sequences:', result.visibleSequences.length, 'Columns:', result.columns.length)
   summaryStrip.innerHTML = `
     <strong>${result.visibleSequences.length}</strong> shown
     <strong>${alignmentData.numSequences}</strong> retained
