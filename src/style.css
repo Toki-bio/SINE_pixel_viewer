@@ -409,3 +409,16 @@ canvas {
   color: var(--ink);
 }
 .fasta-modal-actions button:hover { background: #e8e4d4; }
+
+/* Full image display mode */
+.image-display {
+  flex: 1;
+  overflow: auto;
+  border: 1px solid var(--line);
+  background: var(--field);
+}
+.image-display img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}

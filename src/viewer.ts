@@ -173,6 +173,65 @@ export class SINEViewer {
     this.renderTiledExport(fullResult, filename)
   }
 
+  /** Get data URLs for the full image (all sequences, no row cap). Returns tile URLs and metadata. */
+  getFullImageDataUrls(
+    sortMode: SortMode = 'divergence-asc',
+    divRange: [number, number] = [0, 100],
+  ): { urls: string[]; totalRows: number; cols: number; tileHeight: number; rowCount: number } {
+    const fullResult = this.buildFullExportResultFull(sortMode, divRange)
+    if (!fullResult) return { urls: [], totalRows: 0, cols: 0, tileHeight: 0, rowCount: 0 }
+    return this.renderTilesToUrls(fullResult)
+  }
+
+  private buildFullExportResultFull(sortMode: SortMode, divRange: [number, number]): RenderResult | null {
+    const s: ViewerSettings = {
+      ...defaultViewerSettings(this.data.consensusLength),
+      pixelSize: 1, pixelWidth: 1, labelWidth: 168,
+      showConsensus: false, showDivergence: true,
+      maxSequences: Number.MAX_SAFE_INTEGER, rowOffset: 0,
+      sortMode, divergenceRange: divRange, searchText: '',
+    }
+    const filtered = filterSequences(this.data, s)
+    const columns: PixelColumn[] = []
+    for (let pos = 1; pos <= this.data.consensusLength; pos++) {
+      columns.push({ consensusPos: pos, insertOffset: 0, label: String(pos) })
+    }
+    const matrix = filtered.map((seq) => {
+      const lookup = new Map(seq.pixels.map((p) => [`${p.consensusPos}:${p.insertOffset}`, p.state]))
+      return columns.map((col) => lookup.get(`${col.consensusPos}:${col.insertOffset}`) ?? 'missing')
+    })
+    return { visibleSequences: filtered, columns, matrix }
+  }
+
+  private renderTilesToUrls(result: RenderResult): { urls: string[]; totalRows: number; cols: number; tileHeight: number; rowCount: number } {
+    const palette = colorSchemes.accessible
+    const rowH = 1; const colW = 1; const leftPad = 168; const rightPad = 96
+    const width = leftPad + result.columns.length * colW + rightPad
+    const rowsPerTile = Math.floor((MAX_CANVAS_DIM - 8) / rowH)
+    const totalTiles = Math.ceil(result.visibleSequences.length / rowsPerTile)
+    const urls: string[] = []
+    const c = document.createElement('canvas')
+    c.width = width
+    const ctx = c.getContext('2d')!
+
+    for (let i = 0; i < totalTiles; i++) {
+      const start = i * rowsPerTile
+      const end = Math.min(start + rowsPerTile, result.visibleSequences.length)
+      const tileRows = end - start
+      c.height = 8 + tileRows * rowH + 24
+      ctx.fillStyle = '#fbfaf4'
+      ctx.fillRect(0, 0, width, c.height)
+      const tile: RenderResult = {
+        visibleSequences: result.visibleSequences.slice(start, end),
+        columns: result.columns,
+        matrix: result.matrix.slice(start, end),
+      }
+      this.renderToContext(ctx, tile, palette, leftPad, 8, rowH, colW, true)
+      urls.push(c.toDataURL('image/png'))
+    }
+    return { urls, totalRows: result.visibleSequences.length, cols: result.columns.length, tileHeight: rowsPerTile, rowCount: rowsPerTile }
+  }
+
   /** Build render result for ALL filtered sequences (no rowOffset/canvas cap). */
   private buildFullExportResult(): RenderResult | null {
     // Clone settings with no row limit

@@ -19,6 +19,7 @@ app.innerHTML = `
       <input id="calculation-input" type="file" accept="application/json,.json" hidden>
       <button id="run-alignment" type="button">Run</button>
       <button id="export-png" type="button">Export PNG</button>
+      <button id="full-image-btn" type="button" title="Show all sequences as full-resolution images (non-interactive)">📷 Full</button>
     </div>
   </header>
 
@@ -123,6 +124,7 @@ app.innerHTML = `
         <div class="scale-header" id="scale-header"></div>
         <canvas id="alignment-canvas"></canvas>
       </div>
+      <div class="image-display" id="image-display" hidden></div>
       <output id="hover-output" class="hover-output">Hover over the matrix</output>
     </section>
   </main>
@@ -374,6 +376,53 @@ calculationInput.addEventListener('change', () => {
 })
 document.querySelector<HTMLButtonElement>('#run-alignment')!.addEventListener('click', calculate)
 document.querySelector<HTMLButtonElement>('#export-png')!.addEventListener('click', () => viewer?.exportPng())
+
+// ── Full image toggle ──
+let isFullImageMode = false
+const fullImageBtn = document.querySelector<HTMLButtonElement>('#full-image-btn')!
+const imageDisplay = document.querySelector<HTMLDivElement>('#image-display')!
+const canvasWrap = document.querySelector<HTMLDivElement>('#canvas-wrap')!
+
+fullImageBtn.addEventListener('click', () => {
+  if (!viewer || !alignmentData) return
+  isFullImageMode = !isFullImageMode
+
+  if (isFullImageMode) {
+    // Switch to full image mode
+    const currentSort = document.querySelector<HTMLSelectElement>('#sort-mode')!.value as SortMode
+    const divMin = numericValue('#div-min', 0)
+    const divMax = numericValue('#div-max', 100)
+    summaryStrip.textContent = 'Rendering full image...'
+    
+    setTimeout(() => {
+      try {
+        const { urls, totalRows, cols } = viewer!.getFullImageDataUrls(currentSort, [divMin, divMax])
+        imageDisplay.innerHTML = urls.map((url) => `<img src="${url}" alt="alignment tile">`).join('')
+        canvasWrap.hidden = true
+        imageDisplay.hidden = false
+        fullImageBtn.textContent = '🖱️ Interactive'
+        fullImageBtn.title = 'Switch back to interactive canvas'
+        hoverOutput.textContent = `Full image: ${totalRows} rows, ${cols} cols (non-interactive)`
+        summaryStrip.innerHTML = `<strong>${totalRows}</strong> rows <strong>${cols}</strong> cols (image mode)`
+      } catch (e) {
+        summaryStrip.textContent = e instanceof Error ? e.message : String(e)
+        isFullImageMode = false
+        fullImageBtn.textContent = '📷 Full'
+      }
+    }, 10)
+  } else {
+    // Switch back to interactive canvas mode
+    imageDisplay.hidden = true
+    imageDisplay.innerHTML = ''
+    canvasWrap.hidden = false
+    fullImageBtn.textContent = '📷 Full'
+    fullImageBtn.title = 'Show all sequences as full-resolution images'
+    renderCurrent()
+  }
+})
+
+// ── Event listeners ──
+// (moved below for clarity — rest of listeners follow)
 modeInput.addEventListener('change', () => {
   if (dataFromJson && alignmentData) {
     // Re-derive alignment from stored raw sequences with new mode
