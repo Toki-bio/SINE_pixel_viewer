@@ -7,7 +7,7 @@ import type {
   SortMode,
   ViewerSettings,
 } from './model'
-import { MAX_CANVAS_DIM, reconstructRawFromPixels } from './model'
+import { MAX_CANVAS_DIM, defaultViewerSettings, reconstructRawFromPixels } from './model'
 
 export const colorSchemes: Record<string, Record<PixelState, string>> = {
   accessible: {
@@ -168,10 +168,140 @@ export class SINEViewer {
   }
 
   exportPng(filename = 'sine-pixel-alignment.png') {
-    const link = document.createElement('a')
-    link.download = filename
-    link.href = this.canvas.toDataURL('image/png')
-    link.click()
+    const fullResult = this.buildFullExportResult()
+    if (!fullResult) return
+    this.renderTiledExport(fullResult, filename)
+  }
+
+  /** Build render result for ALL filtered sequences (no rowOffset/canvas cap). */
+  private buildFullExportResult(): RenderResult | null {
+    // Clone settings with no row limit
+    const exportSettings: ViewerSettings = {
+      ...defaultViewerSettings(this.data.consensusLength),
+      pixelSize: 1,  // minimize height for export
+      pixelWidth: this.data.mode === 'full' ? 2 : 1,
+      labelWidth: 168,
+      showConsensus: false,
+      showDivergence: true,
+      maxSequences: Number.MAX_SAFE_INTEGER,
+      rowOffset: 0,
+      sortMode: this.lastResult 
+        ? (document.querySelector<HTMLSelectElement>('#sort-mode')?.value as SortMode ?? 'divergence-asc')
+        : 'divergence-asc',
+    }
+    const filtered = filterSequences(this.data, exportSettings)
+    const [windowStart, windowEnd] = [1, this.data.consensusLength]
+    const columns: PixelColumn[] = []
+    for (let consensusPos = windowStart; consensusPos <= windowEnd; consensusPos += 1) {
+      columns.push({ consensusPos, insertOffset: 0, label: String(consensusPos) })
+    }
+    const matrix = filtered.map((sequence) => {
+      const lookup = new Map(sequence.pixels.map((pixel) => [`${pixel.consensusPos}:${pixel.insertOffset}`, pixel.state]))
+      return columns.map((column) => lookup.get(`${column.consensusPos}:${column.insertOffset}`) ?? 'missing')
+    })
+    return { visibleSequences: filtered, columns, matrix }
+  }
+
+  /** Render the full result in tiles and download each tile as a PNG. */
+  private renderTiledExport(result: RenderResult, baseFilename: string) {
+    const palette = colorSchemes.accessible  // accessible palette for exports
+    const rowHeight = 1  // pixelSize=1 for export
+    const columnWidth = 1
+    const leftPad = 168
+    const rightPad = 96
+    const width = leftPad + result.columns.length * columnWidth + rightPad
+    const rowsPerTile = Math.floor((MAX_CANVAS_DIM - 8) / rowHeight)
+    const totalTiles = Math.ceil(result.visibleSequences.length / rowsPerTile)
+
+    // Create a pool of offscreen canvases for faster rendering
+    const tileCanvas = document.createElement('canvas')
+    tileCanvas.width = width
+    const tileCtx = tileCanvas.getContext('2d')!
+
+    for (let tileIndex = 0; tileIndex < totalTiles; tileIndex++) {
+      const startRow = tileIndex * rowsPerTile
+      const endRow = Math.min(startRow + rowsPerTile, result.visibleSequences.length)
+      const tileRows = endRow - startRow
+      const tileHeight = 8 + tileRows * rowHeight + 24
+      tileCanvas.height = tileHeight
+
+      tileCtx.fillStyle = '#fbfaf4'
+      tileCtx.fillRect(0, 0, width, tileHeight)
+
+      const tileResult: RenderResult = {
+        visibleSequences: result.visibleSequences.slice(startRow, endRow),
+        columns: result.columns,
+        matrix: result.matrix.slice(startRow, endRow),
+      }
+
+      this.renderToContext(tileCtx, tileResult, palette, leftPad, 8, rowHeight, columnWidth, true)
+
+      const suffix = totalTiles > 1 ? `_part${tileIndex + 1}` : ''
+      const link = document.createElement('a')
+      link.download = baseFilename.replace('.png', `${suffix}.png`)
+      link.href = tileCanvas.toDataURL('image/png')
+      link.click()
+    }
+  }
+
+  /** Core rendering to any canvas context (reusable for display and export). */
+  private renderToContext(
+    ctx: CanvasRenderingContext2D,
+    result: RenderResult,
+    palette: Record<PixelState, string>,
+    leftPad: number,
+    topPad: number,
+    rowHeight: number,
+    columnWidth: number,
+    showDiv: boolean,
+  ) {
+    // Labels
+    ctx.fillStyle = '#3d3a34'
+    ctx.font = '11px "IBM Plex Mono", Consolas, monospace'
+    ctx.textBaseline = 'middle'
+    const maxLabelWidth = leftPad - 24
+    result.visibleSequences.forEach((sequence, row) => {
+      if (rowHeight >= 7 || row % Math.ceil(9 / rowHeight) === 0) {
+        let label = sequence.id
+        if (ctx.measureText(label).width > maxLabelWidth) {
+          while (label.length > 3 && ctx.measureText(label + '\u2026').width > maxLabelWidth) {
+            label = label.slice(0, -1)
+          }
+          label += '\u2026'
+        }
+        ctx.fillText(label, 14, topPad + row * rowHeight + rowHeight / 2)
+      }
+    })
+    ctx.strokeStyle = '#d6d0c2'
+    ctx.beginPath()
+    ctx.moveTo(leftPad - 6, topPad)
+    ctx.lineTo(leftPad - 6, topPad + result.visibleSequences.length * rowHeight)
+    ctx.stroke()
+
+    // Matrix
+    result.matrix.forEach((row, rowIndex) => {
+      row.forEach((state, columnIndex) => {
+        ctx.fillStyle = palette[state]
+        ctx.fillRect(leftPad + columnIndex * columnWidth, topPad + rowIndex * rowHeight, columnWidth, rowHeight)
+      })
+    })
+
+    // Divergence bars
+    if (showDiv) {
+      const barX = leftPad + result.columns.length * columnWidth + 16
+      const barMaxWidth = 70
+      const barHeight = Math.max(3, rowHeight - 1)
+      const barYOffset = (rowHeight - barHeight) / 2
+      result.visibleSequences.forEach((sequence, row) => {
+        const barW = Math.max(1, Math.min(barMaxWidth, sequence.divergence))
+        const t = Math.min(1, sequence.divergence / 50)
+        const r = Math.round(61 + (213 - 61) * t)
+        const g = Math.round(107 + (94 - 107) * t)
+        const b = Math.round(84 + (0 - 84) * t)
+        ctx.fillStyle = `rgb(${r},${g},${b})`
+        ctx.fillRect(barX, topPad + row * rowHeight + barYOffset, barW, barHeight)
+      })
+    }
   }
 
   private drawLabels(result: RenderResult, leftPad: number, topPad: number, rowHeight: number) {
