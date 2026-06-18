@@ -169,6 +169,8 @@ export interface AlignmentData {
   parameters: Required<SineCalculatorOptions>
 }
 
+export const MAX_CANVAS_DIM = 8192
+
 export interface ViewerSettings {
   selectedIds: Set<string>
   divergenceRange: [number, number]
@@ -176,6 +178,7 @@ export interface ViewerSettings {
   bottomN: number
   randomN: number
   maxSequences: number
+  rowOffset: number
   consensusWindow: [number, number]
   pixelSize: number
   pixelWidth: number
@@ -216,6 +219,7 @@ export const defaultViewerSettings = (consensusLength: number): ViewerSettings =
   bottomN: 0,
   randomN: 0,
   maxSequences: 500,
+  rowOffset: 0,
   consensusWindow: [1, consensusLength],
   pixelSize: 4,
   pixelWidth: 4,

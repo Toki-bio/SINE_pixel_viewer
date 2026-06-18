@@ -83,6 +83,9 @@ app.innerHTML = `
           <input class="render-control" id="max-sequences" type="range" min="10" max="5000" value="500">
         </label>
         <label class="show-all-row"><input class="render-control" id="show-all" type="checkbox"> Show all</label>
+        <label>Row offset <span class="range-value" id="row-offset-val">0</span>
+          <input class="render-control" id="row-offset" type="range" min="0" max="50000" value="0">
+        </label>
         <label>Top N <span class="range-value" id="top-n-val">0</span>
           <input class="render-control" id="top-n" type="range" min="0" max="500" value="0">
         </label>
@@ -232,8 +235,13 @@ function renderCurrent() {
   if (!alignmentData || !viewer) return
   settings = readSettings(alignmentData.consensusLength)
   const result = viewer.render(settings)
+  const offset = settings.rowOffset
+  const visibleCount = result.visibleSequences.length
+  const totalFiltered = Math.min(settings.maxSequences, alignmentData.numSequences)
   summaryStrip.innerHTML = `
-    <strong>${result.visibleSequences.length}</strong> shown
+    ${offset > 0 || visibleCount < totalFiltered
+      ? `<strong>${offset + 1}-${offset + visibleCount}</strong> of `
+      : ''}<strong>${visibleCount}</strong> shown
     <strong>${alignmentData.numSequences}</strong> retained
     <strong>${alignmentData.consensusLength}</strong> bp
     <strong>${alignmentData.mode}</strong>
@@ -292,6 +300,7 @@ function readSettings(consensusLength: number): ViewerSettings {
   next.maxSequences = document.querySelector<HTMLInputElement>('#show-all')!.checked
     ? Number.MAX_SAFE_INTEGER
     : numericValue('#max-sequences', 500)
+  next.rowOffset = numericValue('#row-offset', 0)
   next.topN = numericValue('#top-n', 0)
   next.bottomN = numericValue('#bottom-n', 0)
   next.randomN = numericValue('#random-n', 0)
@@ -334,6 +343,7 @@ function resetAllControls() {
   document.querySelector<HTMLInputElement>('#div-max')!.value = '100'
   document.querySelector<HTMLInputElement>('#max-sequences')!.value = '500'; syncRangeDisplay('max-sequences')
   document.querySelector<HTMLInputElement>('#show-all')!.checked = false
+  document.querySelector<HTMLInputElement>('#row-offset')!.value = '0'; syncRangeDisplay('row-offset')
   document.querySelector<HTMLInputElement>('#top-n')!.value = '0'; syncRangeDisplay('top-n')
   document.querySelector<HTMLInputElement>('#bottom-n')!.value = '0'; syncRangeDisplay('bottom-n')
   document.querySelector<HTMLInputElement>('#random-n')!.value = '0'; syncRangeDisplay('random-n')

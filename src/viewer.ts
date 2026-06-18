@@ -7,7 +7,7 @@ import type {
   SortMode,
   ViewerSettings,
 } from './model'
-import { reconstructRawFromPixels } from './model'
+import { MAX_CANVAS_DIM, reconstructRawFromPixels } from './model'
 
 export const colorSchemes: Record<string, Record<PixelState, string>> = {
   accessible: {
@@ -54,7 +54,10 @@ export function filterSequences(data: AlignmentData, settings: ViewerSettings): 
     sequences = deterministicSample(sequences, settings.randomN)
   }
 
-  return sequences.slice(0, settings.maxSequences)
+  const capped = sequences.slice(0, settings.maxSequences)
+  // Apply row offset for big datasets where canvas can't fit all rows
+  const offset = Math.max(0, Math.min(settings.rowOffset, Math.max(0, capped.length - 1)))
+  return capped.slice(offset)
 }
 
 export function buildRenderResult(data: AlignmentData, settings: ViewerSettings): RenderResult {
@@ -99,17 +102,23 @@ export class SINEViewer {
 
   render(settings: ViewerSettings): RenderResult {
     const result = buildRenderResult(this.data, settings)
-    this.lastResult = result
-    const palette = colorSchemes[settings.colorScheme] ?? colorSchemes.accessible
-    const leftPad = settings.labelWidth
-    // Consensus track moved to sticky scale header — reduce top pad
+    // Cap visible sequences to canvas-safe height
     const topPad = settings.showConsensus ? 26 : 8
     const rightPad = settings.showDivergence ? 96 : 24
     const bottomPad = 24
     const rowHeight = Math.max(1, settings.pixelSize)
+    const maxVisibleRows = Math.floor((MAX_CANVAS_DIM - topPad - bottomPad) / rowHeight)
+    if (result.visibleSequences.length > maxVisibleRows) {
+      result.visibleSequences = result.visibleSequences.slice(0, maxVisibleRows)
+      result.matrix = result.matrix.slice(0, maxVisibleRows)
+    }
+    this.lastResult = result
+    const palette = colorSchemes[settings.colorScheme] ?? colorSchemes.accessible
+    const leftPad = settings.labelWidth
     const columnWidth = Math.max(1, settings.pixelWidth)
     const width = Math.max(640, leftPad + result.columns.length * columnWidth + rightPad)
-    const height = Math.max(200, topPad + result.visibleSequences.length * rowHeight + bottomPad)
+    const naturalHeight = topPad + result.visibleSequences.length * rowHeight + bottomPad
+    const height = Math.max(200, Math.min(naturalHeight, MAX_CANVAS_DIM))
 
     this.canvas.width = width
     this.canvas.height = height
