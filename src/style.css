@@ -320,3 +320,92 @@ canvas {
   .canvas-wrap { max-height: 60vh; }
   .control-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* Show-all checkbox */
+.show-all-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+.show-all-row input { width: auto; }
+
+/* FASTA modal */
+.fasta-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.fasta-modal[hidden] { display: none; }
+.fasta-modal-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(36, 35, 31, 0.6);
+}
+.fasta-modal-body {
+  position: relative;
+  background: var(--field);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  max-width: 700px;
+  width: 90vw;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+}
+.fasta-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+}
+.fasta-modal-title {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fasta-modal-close {
+  background: none;
+  border: none;
+  font-size: 22px;
+  cursor: pointer;
+  color: var(--muted);
+  padding: 0 4px;
+}
+.fasta-modal-content {
+  flex: 1;
+  overflow: auto;
+  margin: 0;
+  padding: 16px;
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--ink);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.fasta-modal-actions {
+  display: flex;
+  gap: 8px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--line);
+}
+.fasta-modal-actions button {
+  padding: 6px 16px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--field);
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--ink);
+}
+.fasta-modal-actions button:hover { background: #e8e4d4; }

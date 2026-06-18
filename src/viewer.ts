@@ -7,6 +7,7 @@ import type {
   SortMode,
   ViewerSettings,
 } from './model'
+import { reconstructRawFromPixels } from './model'
 
 export const colorSchemes: Record<string, Record<PixelState, string>> = {
   accessible: {
@@ -124,6 +125,14 @@ export class SINEViewer {
     this.drawHover(leftPad, topPad, rowHeight, columnWidth)
 
     return result
+  }
+
+  getLastResult(): RenderResult | null {
+    return this.lastResult
+  }
+
+  reconstructRaw(sequence: SequenceAlignment): string {
+    return reconstructRawFromPixels(sequence.pixels)
   }
 
   setHoverFromPoint(x: number, y: number, settings: ViewerSettings): string {

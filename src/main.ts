@@ -78,6 +78,7 @@ app.innerHTML = `
         <label>Max seq <span class="range-value" id="max-sequences-val">500</span>
           <input class="render-control" id="max-sequences" type="range" min="10" max="5000" value="500">
         </label>
+        <label class="show-all-row"><input class="render-control" id="show-all" type="checkbox"> Show all</label>
         <label>Top N <span class="range-value" id="top-n-val">0</span>
           <input class="render-control" id="top-n" type="range" min="0" max="500" value="0">
         </label>
@@ -119,6 +120,19 @@ app.innerHTML = `
     </section>
   </main>
   <div class="canvas-tooltip" id="canvas-tooltip"></div>
+  <div class="fasta-modal" id="fasta-modal" hidden>
+    <div class="fasta-modal-overlay"></div>
+    <div class="fasta-modal-body">
+      <div class="fasta-modal-header">
+        <span class="fasta-modal-title" id="fasta-modal-title"></span>
+        <button class="fasta-modal-close" id="fasta-modal-close">&times;</button>
+      </div>
+      <pre class="fasta-modal-content" id="fasta-modal-content"></pre>
+      <div class="fasta-modal-actions">
+        <button id="fasta-copy-btn">Copy to clipboard</button>
+      </div>
+    </div>
+  </div>
 `
 
 const consensusInput = document.querySelector<HTMLTextAreaElement>('#consensus-input')!
@@ -271,7 +285,9 @@ function readSettings(consensusLength: number): ViewerSettings {
   if (next.divergenceRange[0] > next.divergenceRange[1]) {
     next.divergenceRange = [next.divergenceRange[1], next.divergenceRange[0]]
   }
-  next.maxSequences = numericValue('#max-sequences', 500)
+  next.maxSequences = document.querySelector<HTMLInputElement>('#show-all')!.checked
+    ? Number.MAX_SAFE_INTEGER
+    : numericValue('#max-sequences', 500)
   next.topN = numericValue('#top-n', 0)
   next.bottomN = numericValue('#bottom-n', 0)
   next.randomN = numericValue('#random-n', 0)
@@ -313,6 +329,7 @@ function resetAllControls() {
   document.querySelector<HTMLInputElement>('#div-min')!.value = '0'
   document.querySelector<HTMLInputElement>('#div-max')!.value = '100'
   document.querySelector<HTMLInputElement>('#max-sequences')!.value = '500'; syncRangeDisplay('max-sequences')
+  document.querySelector<HTMLInputElement>('#show-all')!.checked = false
   document.querySelector<HTMLInputElement>('#top-n')!.value = '0'; syncRangeDisplay('top-n')
   document.querySelector<HTMLInputElement>('#bottom-n')!.value = '0'; syncRangeDisplay('bottom-n')
   document.querySelector<HTMLInputElement>('#random-n')!.value = '0'; syncRangeDisplay('random-n')
@@ -376,7 +393,73 @@ document.querySelectorAll<HTMLElement>('.render-control').forEach((control) => {
   control.addEventListener('change', renderCurrent)
 })
 
-// ── Canvas mouse: hover tooltip ──
+// ── Canvas mouse: hover tooltip + double-click FASTA popup ──
+let lastClickTime = 0
+let lastClickRow = -1
+const fastaModal = document.querySelector<HTMLDivElement>('#fasta-modal')!
+const fastaModalTitle = document.querySelector<HTMLSpanElement>('#fasta-modal-title')!
+const fastaModalContent = document.querySelector<HTMLPreElement>('#fasta-modal-content')!
+document.querySelector<HTMLButtonElement>('#fasta-modal-close')!.addEventListener('click', () => {
+  fastaModal.hidden = true
+})
+fastaModal.querySelector<HTMLDivElement>('.fasta-modal-overlay')!.addEventListener('click', () => {
+  fastaModal.hidden = true
+})
+document.querySelector<HTMLButtonElement>('#fasta-copy-btn')!.addEventListener('click', async () => {
+  await navigator.clipboard.writeText(fastaModalContent.textContent ?? '')
+  const btn = document.querySelector<HTMLButtonElement>('#fasta-copy-btn')!
+  btn.textContent = 'Copied!'
+  setTimeout(() => { btn.textContent = 'Copy to clipboard' }, 2000)
+})
+
+function showFastaPopup(sequenceId: string, rawSequence: string) {
+  fastaModalTitle.textContent = sequenceId
+  // Format as FASTA with 60 chars per line
+  const lines: string[] = []
+  for (let i = 0; i < rawSequence.length; i += 60) {
+    lines.push(rawSequence.slice(i, i + 60))
+  }
+  fastaModalContent.textContent = `>${sequenceId}\n${lines.join('\n')}`
+  fastaModal.hidden = false
+}
+
+canvas.addEventListener('click', (event) => {
+  if (!viewer || !alignmentData) return
+  const rect = canvas.getBoundingClientRect()
+  const x = event.clientX - rect.left
+  const y = event.clientY - rect.top
+  const topPad = settings.showConsensus ? 26 : 8
+  const rowHeight = Math.max(1, settings.pixelSize)
+
+  // Only respond to clicks in the label area
+  if (x >= settings.labelWidth || y < topPad) {
+    lastClickRow = -1
+    return
+  }
+
+  const lastResult = viewer.getLastResult()
+  if (!lastResult) { lastClickRow = -1; return }
+
+  const row = Math.floor((y - topPad) / rowHeight)
+  if (row < 0 || row >= lastResult.visibleSequences.length) {
+    lastClickRow = -1
+    return
+  }
+
+  const now = Date.now()
+  if (row === lastClickRow && now - lastClickTime < 400) {
+    // Double-click detected — show FASTA popup
+    const seq = lastResult.visibleSequences[row]
+    const raw = seq.rawSequence ?? viewer.reconstructRaw(seq)
+    if (raw) {
+      showFastaPopup(seq.id, raw)
+    }
+    lastClickRow = -1
+  } else {
+    lastClickRow = row
+    lastClickTime = now
+  }
+})
 canvas.addEventListener('mousemove', (event) => {
   if (!viewer || !alignmentData) return
   const rect = canvas.getBoundingClientRect()
