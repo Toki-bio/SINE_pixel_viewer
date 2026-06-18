@@ -24,6 +24,8 @@ export interface PixelCell {
   state: PixelState
   base: string
   consensusBase: string
+  /** Length of the indel run this pixel belongs to (for color scaling) */
+  runLength?: number
 }
 
 export interface SequenceAlignment {
@@ -70,6 +72,23 @@ export function expandCompactAlignment(
   const pixels: PixelCell[] = []
   const consensusLen = consensus.length
 
+  // Pre-compute deletion run lengths by scanning states for consecutive 'D' runs
+  const delRunLen = new Map<number, number>() // consensusPos -> total run length
+  let runStart = -1
+  for (let i = 0; i < consensusLen; i++) {
+    if ((compact.states[i] ?? '.') === 'D') {
+      if (runStart < 0) runStart = i
+    } else if (runStart >= 0) {
+      const runLen = i - runStart
+      for (let j = runStart; j < i; j++) delRunLen.set(j + 1, runLen)
+      runStart = -1
+    }
+  }
+  if (runStart >= 0) {
+    const runLen = consensusLen - runStart
+    for (let j = runStart; j < consensusLen; j++) delRunLen.set(j + 1, runLen)
+  }
+
   for (let i = 0; i < consensusLen; i++) {
     const pos = i + 1
     const stateChar = compact.states[i] ?? '.'
@@ -81,18 +100,21 @@ export function expandCompactAlignment(
       state,
       base,
       consensusBase: consensus[i],
+      runLength: state === 'del' ? (delRunLen.get(pos) ?? 1) : undefined,
     })
 
-    // Handle insertions after this position (full mode)
+    // Handle insertions — tag with run length
     const insBases = compact.insertions?.[String(pos)]
     if (insBases) {
-      for (let offset = 0; offset < insBases.length; offset++) {
+      const insLen = insBases.length
+      for (let offset = 0; offset < insLen; offset++) {
         pixels.push({
           consensusPos: pos,
           insertOffset: offset + 1,
           state: 'ins',
           base: insBases[offset],
           consensusBase: '-',
+          runLength: insLen,
         })
       }
     }
@@ -193,10 +215,15 @@ export interface ViewerSettings {
   gapThreshold: number
 }
 
+export interface MatrixCell {
+  state: PixelState
+  runLength?: number
+}
+
 export interface RenderResult {
   visibleSequences: SequenceAlignment[]
   columns: PixelColumn[]
-  matrix: PixelState[][]
+  matrix: MatrixCell[][]
 }
 
 export interface PixelColumn {

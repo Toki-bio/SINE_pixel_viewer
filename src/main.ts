@@ -2,7 +2,7 @@ import './style.css'
 import { calculateAlignmentData } from './calculator'
 import { defaultViewerSettings, expandCompactAlignment, isCompactSequence, reconstructRawFromPixels, type AlignmentData, type AlignmentMode, type AnySequenceOnDisk, type ColorSchemeName, type SortMode, type ViewerSettings } from './model'
 import { sampleConsensus, sampleCopies } from './sampleData'
-import { SINEViewer, colorSchemes } from './viewer'
+import { SINEViewer, colorSchemes, INS_COLORS_BY_LENGTH, DEL_COLORS_BY_LENGTH } from './viewer'
 
 const app = document.querySelector<HTMLDivElement>('#app')!
 
@@ -13,56 +13,56 @@ app.innerHTML = `
       <h1>SINE Pixel Viewer</h1>
     </div>
     <div class="header-actions">
-      <button id="toggle-panel" class="toggle-panel-btn" type="button" title="Toggle control panel">☰</button>
-      <button id="reset-button" type="button">Reset</button>
-      <button id="load-calculation" type="button">Load JSON</button>
+      <button id="toggle-panel" class="toggle-panel-btn" type="button" title="Show/hide control panel">☰</button>
+      <button id="reset-button" type="button" title="Reset to original sample data and default controls">Reset</button>
+      <button id="load-calculation" type="button" title="Load a previously saved alignment JSON file">Load JSON</button>
       <input id="calculation-input" type="file" accept="application/json,.json" hidden>
-      <button id="run-alignment" type="button">Run</button>
-      <button id="export-png" type="button">Export PNG</button>
-      <button id="full-image-btn" type="button" title="Show all sequences as full-resolution images (non-interactive)">📷 Full</button>
+      <button id="run-alignment" type="button" title="Run alignment with current FASTA inputs">Run</button>
+      <button id="export-png" type="button" title="Download the current view as a PNG image">Export PNG</button>
+      <button id="full-image-btn" type="button" title="Render all sequences at full resolution as scrollable images (non-interactive)">📷 Full</button>
     </div>
   </header>
 
   <main class="workspace">
     <aside class="control-panel" aria-label="Alignment controls">
-      <label>Consensus FASTA
+      <label title="Consensus/reference sequence in FASTA format">Consensus FASTA
         <textarea id="consensus-input" spellcheck="false" rows="3"></textarea>
       </label>
-      <label>SINE Copy FASTA
+      <label title="SINE copy sequences in FASTA format (one or more)">SINE Copy FASTA
         <textarea id="copy-input" spellcheck="false" rows="3"></textarea>
       </label>
 
       <div class="control-grid">
-        <label>Mode
+        <label title="Alignment mode: sub_del=align with gap penalty (no insertions shown), full=with insertions, sub_only=direct position-by-position">Mode
           <select id="mode-input" class="render-control">
             <option value="full">full</option>
             <option value="sub_del" selected>sub_del</option>
             <option value="sub_only">sub_only</option>
           </select>
         </label>
-        <label>Px H <span class="range-value" id="pixel-size-val">4</span>
+        <label title="Pixel height in px">Px H <span class="range-value" id="pixel-size-val">4</span>
           <input class="render-control" id="pixel-size" type="range" min="1" max="20" value="4">
         </label>
-        <label>Px W <span class="range-value" id="pixel-width-val">4</span>
+        <label title="Pixel width in px">Px W <span class="range-value" id="pixel-width-val">4</span>
           <input class="render-control" id="pixel-width" type="range" min="1" max="20" value="4">
         </label>
-        <label>Label <span class="range-value" id="label-width-val">168</span>
+        <label title="Width of the sequence name label column in px">Label <span class="range-value" id="label-width-val">168</span>
           <input class="render-control" id="label-width" type="range" min="60" max="400" value="168">
         </label>
-        <label>Color
+        <label title="Color scheme for the pixel matrix">Color
           <select class="render-control" id="color-scheme">
             <option value="accessible" selected>accessible</option>
             <option value="classic">classic</option>
             <option value="grayscale">grayscale</option>
           </select>
         </label>
-        <label>Window start <span class="range-value" id="window-start-val">1</span>
+        <label title="First consensus position to display (1-based)">Window start <span class="range-value" id="window-start-val">1</span>
           <input class="render-control" id="window-start" type="number" min="1" value="1" style="width:100%">
         </label>
-        <label>Window end <span class="range-value" id="window-end-val">64</span>
+        <label title="Last consensus position to display">Window end <span class="range-value" id="window-end-val">64</span>
           <input class="render-control" id="window-end" type="number" min="1" value="64" style="width:100%">
         </label>
-        <label>Sort
+        <label title="Sort sequences in the matrix. div=total divergence, sub=substitution only, indel=indels only">Sort
           <select class="render-control" id="sort-mode">
             <option value="divergence-asc" selected>div asc</option>
             <option value="divergence-desc">div desc</option>
@@ -74,34 +74,34 @@ app.innerHTML = `
             <option value="input">input</option>
           </select>
         </label>
-        <label>Div min%
+        <label title="Minimum divergence % (filter out lower)">Div min%
           <input class="render-control" id="div-min" type="number" min="0" max="100" value="0" style="width:100%">
         </label>
-        <label>Div max%
+        <label title="Maximum divergence % (filter out higher)">Div max%
           <input class="render-control" id="div-max" type="number" min="0" max="100" value="100" style="width:100%">
         </label>
-        <label>Max seq <span class="range-value" id="max-sequences-val">500</span>
+        <label title="Maximum number of sequences to display in the matrix">Max seq <span class="range-value" id="max-sequences-val">500</span>
           <input class="render-control" id="max-sequences" type="range" min="10" max="5000" value="500">
         </label>
-        <label class="show-all-row"><input class="render-control" id="show-all" type="checkbox"> Show all</label>
-        <label>Row offset <span class="range-value" id="row-offset-val">0</span>
+        <label class="show-all-row" title="Ignore max seq limit and show all retained sequences"><input class="render-control" id="show-all" type="checkbox"> Show all</label>
+        <label title="Scroll offset for viewing subsets of a large dataset">Row offset <span class="range-value" id="row-offset-val">0</span>
           <input class="render-control" id="row-offset" type="range" min="0" max="50000" value="0">
         </label>
-        <label>Top N <span class="range-value" id="top-n-val">0</span>
+        <label title="Show only the top N sequences by lowest divergence">Top N <span class="range-value" id="top-n-val">0</span>
           <input class="render-control" id="top-n" type="range" min="0" max="500" value="0">
         </label>
-        <label>Bottom N <span class="range-value" id="bottom-n-val">0</span>
+        <label title="Show only the bottom N sequences by highest divergence">Bottom N <span class="range-value" id="bottom-n-val">0</span>
           <input class="render-control" id="bottom-n" type="range" min="0" max="500" value="0">
         </label>
-        <label>Random N <span class="range-value" id="random-n-val">0</span>
+        <label title="Show a random sample of N sequences">Random N <span class="range-value" id="random-n-val">0</span>
           <input class="render-control" id="random-n" type="range" min="0" max="500" value="0">
         </label>
       </div>
 
-      <label>Search IDs
+      <label title="Filter sequences by ID substring">Search IDs
         <input class="render-control" id="search-text" type="search" placeholder="filter by id...">
       </label>
-      <label>Selected IDs
+      <label title="Comma-separated list of sequence IDs to show (overrides other filters)">Selected IDs
         <input class="render-control" id="selected-ids" type="text" placeholder="id1, id2, ...">
       </label>
 
@@ -116,8 +116,12 @@ app.innerHTML = `
       <div class="legend" aria-label="Color legend">
         <span><i class="match"></i>match</span>
         <span><i class="mismatch"></i>mismatch</span>
-        <span><i class="ins"></i>insertion</span>
-        <span><i class="del"></i>deletion</span>
+        <span class="legend-group">
+          <i class="ins1"></i><i class="ins2"></i><i class="ins3"></i><i class="ins4"></i> ins&nbsp;len
+        </span>
+        <span class="legend-group">
+          <i class="del1"></i><i class="del2"></i><i class="del3"></i><i class="del4"></i> del&nbsp;len
+        </span>
         <span><i class="missing"></i>missing</span>
       </div>
       <div class="canvas-wrap" id="canvas-wrap">
@@ -256,9 +260,16 @@ function renderCurrent() {
 
 function syncLegendColors() {
   const scheme = colorSchemes[settings.colorScheme] ?? colorSchemes.accessible
-  for (const state of ['match', 'mismatch', 'ins', 'del', 'missing'] as const) {
+  for (const state of ['match', 'mismatch', 'missing'] as const) {
     const el = document.querySelector<HTMLElement>(`.legend .${state}`)
     if (el) el.style.background = scheme[state]
+  }
+  // Indel length scale
+  for (let i = 1; i <= 4; i++) {
+    const insEl = document.querySelector<HTMLElement>(`.legend .ins${i}`)
+    if (insEl) insEl.style.background = INS_COLORS_BY_LENGTH[i - 1]
+    const delEl = document.querySelector<HTMLElement>(`.legend .del${i}`)
+    if (delEl) delEl.style.background = DEL_COLORS_BY_LENGTH[i - 1]
   }
 }
 

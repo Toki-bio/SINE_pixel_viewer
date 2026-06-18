@@ -33,6 +33,33 @@ export const colorSchemes: Record<string, Record<PixelState, string>> = {
   },
 }
 
+/** Color scales for indels by run length: [1bp, 2bp, 3-4bp, 5+bp] */
+export const INS_COLORS_BY_LENGTH = [
+  '#8ecae6',  // 1bp: pale blue
+  '#5baedb',  // 2bp: medium blue
+  '#0072b2',  // 3-4bp: strong blue
+  '#004477',  // 5+bp: deep blue
+]
+export const DEL_COLORS_BY_LENGTH = [
+  '#fdf0b0',  // 1bp: pale yellow
+  '#f5d44a',  // 2bp: gold
+  '#e6b800',  // 3-4bp: dark gold
+  '#996600',  // 5+bp: brown
+]
+
+/** Get pixel color accounting for indel run length scaling. */
+export function pixelColor(state: PixelState, palette: Record<PixelState, string>, runLength?: number): string {
+  if (state === 'ins' && runLength != null) {
+    const idx = runLength <= 1 ? 0 : runLength <= 2 ? 1 : runLength <= 4 ? 2 : 3
+    return INS_COLORS_BY_LENGTH[idx]
+  }
+  if (state === 'del' && runLength != null) {
+    const idx = runLength <= 1 ? 0 : runLength <= 2 ? 1 : runLength <= 4 ? 2 : 3
+    return DEL_COLORS_BY_LENGTH[idx]
+  }
+  return palette[state]
+}
+
 export function filterSequences(data: AlignmentData, settings: ViewerSettings): SequenceAlignment[] {
   let sequences = data.sequences.filter((sequence) => {
     const selectedMatch = settings.selectedIds.size === 0 || settings.selectedIds.has(sequence.id)
@@ -76,8 +103,8 @@ export function buildRenderResult(data: AlignmentData, settings: ViewerSettings)
   }
 
   const matrix = visibleSequences.map((sequence) => {
-    const lookup = new Map(sequence.pixels.map((pixel) => [`${pixel.consensusPos}:${pixel.insertOffset}`, pixel.state]))
-    return columns.map((column) => lookup.get(`${column.consensusPos}:${column.insertOffset}`) ?? 'missing')
+    const lookup = new Map(sequence.pixels.map((pixel) => [`${pixel.consensusPos}:${pixel.insertOffset}`, { state: pixel.state, runLength: pixel.runLength }]))
+    return columns.map((column) => lookup.get(`${column.consensusPos}:${column.insertOffset}`) ?? { state: 'missing' as PixelState })
   })
 
   return { visibleSequences, columns, matrix }
@@ -197,8 +224,8 @@ export class SINEViewer {
       columns.push({ consensusPos: pos, insertOffset: 0, label: String(pos) })
     }
     const matrix = filtered.map((seq) => {
-      const lookup = new Map(seq.pixels.map((p) => [`${p.consensusPos}:${p.insertOffset}`, p.state]))
-      return columns.map((col) => lookup.get(`${col.consensusPos}:${col.insertOffset}`) ?? 'missing')
+      const lookup = new Map(seq.pixels.map((p) => [`${p.consensusPos}:${p.insertOffset}`, { state: p.state, runLength: p.runLength }]))
+      return columns.map((col) => lookup.get(`${col.consensusPos}:${col.insertOffset}`) ?? { state: 'missing' as PixelState })
     })
     return { visibleSequences: filtered, columns, matrix }
   }
@@ -255,8 +282,8 @@ export class SINEViewer {
       columns.push({ consensusPos, insertOffset: 0, label: String(consensusPos) })
     }
     const matrix = filtered.map((sequence) => {
-      const lookup = new Map(sequence.pixels.map((pixel) => [`${pixel.consensusPos}:${pixel.insertOffset}`, pixel.state]))
-      return columns.map((column) => lookup.get(`${column.consensusPos}:${column.insertOffset}`) ?? 'missing')
+      const lookup = new Map(sequence.pixels.map((pixel) => [`${pixel.consensusPos}:${pixel.insertOffset}`, { state: pixel.state, runLength: pixel.runLength }]))
+      return columns.map((column) => lookup.get(`${column.consensusPos}:${column.insertOffset}`) ?? { state: 'missing' as PixelState })
     })
     return { visibleSequences: filtered, columns, matrix }
   }
@@ -339,8 +366,8 @@ export class SINEViewer {
 
     // Matrix
     result.matrix.forEach((row, rowIndex) => {
-      row.forEach((state, columnIndex) => {
-        ctx.fillStyle = palette[state]
+      row.forEach((cell, columnIndex) => {
+        ctx.fillStyle = pixelColor(cell.state, palette, cell.runLength)
         ctx.fillRect(leftPad + columnIndex * columnWidth, topPad + rowIndex * rowHeight, columnWidth, rowHeight)
       })
     })
@@ -396,8 +423,8 @@ export class SINEViewer {
     columnWidth: number,
   ) {
     result.matrix.forEach((row, rowIndex) => {
-      row.forEach((state, columnIndex) => {
-        this.context.fillStyle = palette[state]
+      row.forEach((cell, columnIndex) => {
+        this.context.fillStyle = pixelColor(cell.state, palette, cell.runLength)
         this.context.fillRect(leftPad + columnIndex * columnWidth, topPad + rowIndex * rowHeight, columnWidth, rowHeight)
       })
     })

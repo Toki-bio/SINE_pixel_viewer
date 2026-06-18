@@ -235,9 +235,22 @@ textarea {
 }
 .legend .match { background: #3f6b54; }
 .legend .mismatch { background: #d55e00; }
-.legend .ins { background: #0072b2; }
-.legend .del { background: #e6b800; }
 .legend .missing { background: #ece8dd; }
+/* Indel length scale squares */
+.legend .ins1, .legend .ins2, .legend .ins3, .legend .ins4,
+.legend .del1, .legend .del2, .legend .del3, .legend .del4 {
+  width: 6px;
+  height: 10px;
+}
+.legend .ins1 { background: #8ecae6; }
+.legend .ins2 { background: #5baedb; }
+.legend .ins3 { background: #0072b2; }
+.legend .ins4 { background: #004477; }
+.legend .del1 { background: #fdf0b0; }
+.legend .del2 { background: #f5d44a; }
+.legend .del3 { background: #e6b800; }
+.legend .del4 { background: #996600; }
+.legend-group { gap: 1px !important; }
 
 .canvas-wrap {
   overflow: auto;

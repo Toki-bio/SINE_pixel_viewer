@@ -213,6 +213,9 @@ function projectAlignment(
     })
   }
 
+  // Post-process: annotate indel run lengths
+  annotateIndelRunLengths(pixels)
+
   const denominator = consensus.length || 1
   const indels = insertions + deletions
   return {
@@ -224,6 +227,38 @@ function projectAlignment(
     alignedCoverage: (observedConsensusColumns / denominator) * 100,
     numIndels: indels,
     length: record.sequence.length,
+  }
+}
+
+function annotateIndelRunLengths(pixels: PixelCell[]): void {
+  // Annotate consecutive insertion runs at the same consensus position
+  let insRunStart = -1
+  for (let i = 0; i <= pixels.length; i++) {
+    const p = i < pixels.length ? pixels[i] : null
+    if (p && p.state === 'ins' && p.insertOffset > 0) {
+      if (insRunStart < 0) insRunStart = i
+    } else if (insRunStart >= 0) {
+      const runLen = i - insRunStart
+      for (let j = insRunStart; j < i; j++) {
+        if (pixels[j].state === 'ins') pixels[j].runLength = runLen
+      }
+      insRunStart = -1
+    }
+  }
+
+  // Annotate consecutive deletion runs
+  let delRunStart = -1
+  for (let i = 0; i <= pixels.length; i++) {
+    const p = i < pixels.length ? pixels[i] : null
+    if (p && p.state === 'del' && p.insertOffset === 0) {
+      if (delRunStart < 0) delRunStart = i
+    } else if (delRunStart >= 0) {
+      const runLen = i - delRunStart
+      for (let j = delRunStart; j < i; j++) {
+        if (pixels[j].state === 'del') pixels[j].runLength = runLen
+      }
+      delRunStart = -1
+    }
   }
 }
 
