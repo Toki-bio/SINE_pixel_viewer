@@ -268,6 +268,18 @@ function sortSequences(sequences: SequenceAlignment[], sortMode: SortMode) {
   if (sortMode === 'divergence-desc') {
     return copy.sort((a, b) => b.divergence - a.divergence)
   }
+  if (sortMode === 'divsub-asc') {
+    return copy.sort((a, b) => a.divergenceSubstitution - b.divergenceSubstitution)
+  }
+  if (sortMode === 'divsub-desc') {
+    return copy.sort((a, b) => b.divergenceSubstitution - a.divergenceSubstitution)
+  }
+  if (sortMode === 'divindel-asc') {
+    return copy.sort((a, b) => a.divergenceIndel - b.divergenceIndel)
+  }
+  if (sortMode === 'divindel-desc') {
+    return copy.sort((a, b) => b.divergenceIndel - a.divergenceIndel)
+  }
   return copy
 }
 

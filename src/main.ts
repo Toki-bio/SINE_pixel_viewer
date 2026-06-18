@@ -65,6 +65,10 @@ app.innerHTML = `
           <select class="render-control" id="sort-mode">
             <option value="divergence-asc" selected>div asc</option>
             <option value="divergence-desc">div desc</option>
+            <option value="divsub-asc">div sub asc</option>
+            <option value="divsub-desc">div sub desc</option>
+            <option value="divindel-asc">div indel asc</option>
+            <option value="divindel-desc">div indel desc</option>
             <option value="id">id</option>
             <option value="input">input</option>
           </select>
@@ -430,6 +434,24 @@ canvas.addEventListener('click', (event) => {
   const y = event.clientY - rect.top
   const topPad = settings.showConsensus ? 26 : 8
   const rowHeight = Math.max(1, settings.pixelSize)
+
+  // Click on divergence bar area → toggle sort direction
+  const rightPad = settings.showDivergence ? 96 : 24
+  const canvasWidth = canvas.width
+  if (x > canvasWidth - rightPad && y > topPad) {
+    const sortMode = document.querySelector<HTMLSelectElement>('#sort-mode')!
+    const current = sortMode.value as SortMode
+    const pairs: Array<[SortMode, SortMode]> = [
+      ['divergence-asc', 'divergence-desc'], ['divergence-desc', 'divergence-asc'],
+      ['divsub-asc', 'divsub-desc'], ['divsub-desc', 'divsub-asc'],
+      ['divindel-asc', 'divindel-desc'], ['divindel-desc', 'divindel-asc'],
+    ]
+    for (const [a, b] of pairs) {
+      if (current === a) { sortMode.value = b; sortMode.dispatchEvent(new Event('change')); break }
+    }
+    lastClickRow = -1
+    return
+  }
 
   // Only respond to clicks in the label area
   if (x >= settings.labelWidth || y < topPad) {

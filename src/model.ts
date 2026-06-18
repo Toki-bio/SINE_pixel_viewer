@@ -2,7 +2,7 @@ export type AlignmentMode = 'full' | 'sub_del' | 'sub_only'
 
 export type PixelState = 'match' | 'mismatch' | 'ins' | 'del' | 'missing'
 
-export type SortMode = 'input' | 'id' | 'divergence-asc' | 'divergence-desc'
+export type SortMode = 'input' | 'id' | 'divergence-asc' | 'divergence-desc' | 'divsub-asc' | 'divsub-desc' | 'divindel-asc' | 'divindel-desc'
 
 export type ColorSchemeName = 'classic' | 'accessible' | 'grayscale'
 
